@@ -9,6 +9,7 @@ import {
   AccordionSummary,
   AccordionDetails,
   Chip,
+  useTheme,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
@@ -316,6 +317,9 @@ const formulaSections: FormulaSection[] = [
 ]
 
 export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose }) => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+
   return (
     <Drawer
       anchor="right"
@@ -324,8 +328,9 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
       PaperProps={{
         sx: {
           width: { xs: '100vw', sm: 560 },
-          backgroundColor: '#0A1628',
-          color: '#E8EDF5',
+          backgroundColor: isDark ? '#070B14' : '#F8FAFC',
+          color: isDark ? '#F8FAFC' : '#0F172A',
+          borderLeft: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #E2E8F0',
         },
       }}
     >
@@ -336,22 +341,25 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
           alignItems: 'center',
           justifyContent: 'space-between',
           px: 3,
-          py: 2,
-          background: 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
+          py: 2.2,
+          background: isDark
+            ? 'linear-gradient(135deg, #070B14 0%, #0F172A 100%)'
+            : 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
+          borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0,0,0,0.08)',
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <FunctionsIcon sx={{ color: '#DDBB75', fontSize: 28 }} />
+          <FunctionsIcon sx={{ color: '#F4B400', fontSize: 28 }} />
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#fff', lineHeight: 1.2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: '#FFFFFF', lineHeight: 1.2 }}>
               Formulas & Metrics
             </Typography>
-            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              XCAPE system reference — all oilfield units
+            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.8)' }}>
+              XCAPE system reference · Oilfield Units & Correlations
             </Typography>
           </Box>
         </Box>
-        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.8)' }}>
+        <IconButton onClick={onClose} sx={{ color: 'rgba(255,255,255,0.85)', '&:hover': { color: '#FFFFFF' } }}>
           <CloseIcon />
         </IconButton>
       </Box>
@@ -366,34 +374,35 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
             sx={{
               backgroundColor: 'transparent',
               backgroundImage: 'none',
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              borderBottom: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #E2E8F0',
               '&::before': { display: 'none' },
             }}
           >
             <AccordionSummary
-              expandIcon={<ExpandMoreIcon sx={{ color: 'rgba(255,255,255,0.6)' }} />}
+              expandIcon={<ExpandMoreIcon sx={{ color: isDark ? '#94A3B8' : '#475569' }} />}
               sx={{
                 px: 3,
                 py: 1.5,
-                '&:hover': { backgroundColor: 'rgba(255,255,255,0.04)' },
+                '&:hover': { backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(15,76,129,0.04)' },
               }}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Typography sx={{ fontSize: 20 }}>{section.icon}</Typography>
-                <Typography sx={{ fontWeight: 600, color: '#E8EDF5', fontSize: '0.95rem' }}>
+                <Typography sx={{ fontWeight: 700, color: isDark ? '#F1F5F9' : '#0F172A', fontSize: '0.96rem' }}>
                   {section.title}
                 </Typography>
               </Box>
             </AccordionSummary>
-            <AccordionDetails sx={{ px: 3, pb: 2, pt: 0 }}>
+            <AccordionDetails sx={{ px: 3, pb: 2.5, pt: 0 }}>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 {section.formulas.map((f, fIdx) => (
                   <Box
                     key={fIdx}
                     sx={{
                       borderRadius: 2,
-                      border: `1px solid ${section.color}40`,
-                      backgroundColor: `${section.color}12`,
+                      border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #E2E8F0',
+                      backgroundColor: isDark ? 'rgba(15, 23, 42, 0.7)' : '#FFFFFF',
+                      boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.04)',
                       overflow: 'hidden',
                     }}
                   >
@@ -401,8 +410,9 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
                     <Box
                       sx={{
                         px: 2,
-                        py: 1,
-                        borderBottom: `1px solid ${section.color}30`,
+                        py: 1.2,
+                        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.06)' : '1px solid #E2E8F0',
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#F8FAFC',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -410,7 +420,7 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
                         flexWrap: 'wrap',
                       }}
                     >
-                      <Typography sx={{ fontWeight: 600, fontSize: '0.85rem', color: '#E8EDF5' }}>
+                      <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', color: isDark ? '#F8FAFC' : '#0F172A' }}>
                         {f.name}
                       </Typography>
                       {f.units && (
@@ -419,29 +429,33 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
                           size="small"
                           sx={{
                             fontSize: '0.68rem',
-                            height: 20,
-                            backgroundColor: `${section.color}30`,
-                            color: '#DDBB75',
-                            fontWeight: 600,
+                            height: 22,
+                            backgroundColor: isDark ? 'rgba(244,180,0,0.15)' : 'rgba(244,180,0,0.12)',
+                            color: isDark ? '#FCD34D' : '#B45309',
+                            border: `1px solid ${isDark ? 'rgba(244,180,0,0.35)' : 'rgba(244,180,0,0.25)'}`,
+                            fontWeight: 700,
                           }}
                         />
                       )}
                     </Box>
 
                     {/* The formula itself */}
-                    <Box sx={{ px: 2, py: 1.5 }}>
+                    <Box sx={{ px: 2, py: 2 }}>
                       <Box
                         sx={{
-                          fontFamily: 'monospace',
-                          fontSize: '0.82rem',
-                          color: '#DDBB75',
-                          backgroundColor: 'rgba(0,0,0,0.3)',
+                          fontFamily: 'ui-monospace, "SF Mono", Consolas, monospace',
+                          fontSize: '0.86rem',
+                          color: isDark ? '#FDE68A' : '#0F4C81',
+                          backgroundColor: isDark ? '#030712' : '#F1F5F9',
+                          border: isDark ? '1px solid rgba(244,180,0,0.3)' : '1px solid #CBD5E1',
                           px: 2,
-                          py: 1,
-                          borderRadius: 1,
-                          mb: 1.5,
+                          py: 1.2,
+                          borderRadius: 1.5,
+                          mb: 1.8,
                           wordBreak: 'break-word',
                           lineHeight: 1.6,
+                          fontWeight: isDark ? 500 : 700,
+                          boxShadow: isDark ? 'inset 0 1px 3px rgba(0,0,0,0.5)' : 'none',
                         }}
                       >
                         {f.formula}
@@ -449,17 +463,17 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
 
                       {/* Variables */}
                       {f.variables.length > 0 && (
-                        <Box sx={{ mb: 1.5 }}>
+                        <Box sx={{ mb: 1.8, pl: 0.5 }}>
                           {f.variables.map((v, vIdx) => (
                             <Typography
                               key={vIdx}
                               variant="caption"
                               sx={{
                                 display: 'block',
-                                color: 'rgba(255,255,255,0.6)',
+                                color: isDark ? '#CBD5E1' : '#334155',
                                 lineHeight: 1.7,
-                                fontSize: '0.73rem',
-                                '&::before': { content: '"· "', color: section.color },
+                                fontSize: '0.78rem',
+                                '&::before': { content: '"• "', color: section.color, fontWeight: 'bold' },
                               }}
                             >
                               {v}
@@ -473,10 +487,10 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
                         variant="caption"
                         sx={{
                           display: 'block',
-                          color: 'rgba(255,255,255,0.5)',
-                          fontSize: '0.75rem',
+                          color: isDark ? '#94A3B8' : '#64748B',
+                          fontSize: '0.76rem',
                           fontStyle: 'italic',
-                          lineHeight: 1.5,
+                          lineHeight: 1.55,
                         }}
                       >
                         {f.description}
@@ -489,8 +503,8 @@ export const FormulasDrawer: React.FC<FormulasDrawerProps> = ({ open, onClose })
           </Accordion>
         ))}
 
-        <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)', my: 2, mx: 3 }} />
-        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: 'rgba(255,255,255,0.3)', px: 3 }}>
+        <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', my: 2.5, mx: 3 }} />
+        <Typography variant="caption" sx={{ display: 'block', textAlign: 'center', color: isDark ? '#64748B' : '#64748B', px: 3, fontWeight: 500 }}>
           XCAPE — Automated Reservoir History Matching & Nodal Analysis System
         </Typography>
       </Box>

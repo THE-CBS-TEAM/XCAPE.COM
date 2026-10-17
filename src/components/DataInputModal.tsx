@@ -103,14 +103,14 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full max-h-[90vh] flex flex-col dark:bg-slate-800 dark:text-slate-100">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col dark:bg-[#111827] dark:border dark:border-white/10 dark:text-slate-100">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-slate-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100">Add Dataset</h2>
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/10">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-[#F8FAFC]">Add Dataset</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:text-slate-300 dark:hover:text-slate-100"
+            className="text-gray-400 hover:text-gray-600 dark:text-slate-400 dark:hover:text-slate-100"
             disabled={isLoading}
           >
             <X className="w-6 h-6" />
@@ -271,17 +271,17 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-slate-700">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-white/10">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 bg-gray-100 rounded hover:bg-gray-200 font-medium text-sm dark:bg-transparent dark:text-slate-200 dark:hover:bg-slate-700"
+            className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium text-sm dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 transition-colors"
             disabled={isLoading}
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-sky-400 dark:hover:bg-sky-300 dark:text-slate-950 text-white rounded-lg font-semibold text-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             disabled={
               isLoading ||
               !name.trim() ||

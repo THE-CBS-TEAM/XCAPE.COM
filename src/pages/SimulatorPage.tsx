@@ -895,18 +895,34 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12}>
                 <Card
                   sx={{
-                    background: 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
-                    border: '2px solid #0F4C81',
+                    background:
+                      theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, rgba(15, 76, 129, 0.25) 0%, rgba(56, 189, 248, 0.1) 100%)'
+                        : 'linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%)',
+                    border:
+                      theme.palette.mode === 'dark'
+                        ? '1px solid rgba(56, 189, 248, 0.3)'
+                        : '1px solid #CBD5E1',
                     borderRadius: '12px',
                   }}
                 >
                   <CardContent>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Box>
-                        <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5, color: '#0F4C81' }}>
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            fontWeight: 700,
+                            mb: 0.5,
+                            color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                          }}
+                        >
                           📚 Need Help Getting Started?
                         </Typography>
-                        <Typography variant="body2" sx={{ color: '#555' }}>
+                        <Typography
+                          variant="body2"
+                          sx={{ color: theme.palette.mode === 'dark' ? '#94A3B8' : '#555' }}
+                        >
                           View sample datasets, understand data structure, and learn what format the system expects
                         </Typography>
                       </Box>
@@ -915,8 +931,12 @@ const SimulatorPage: React.FC = () => {
                         startIcon={<DataObjectIcon />}
                         onClick={() => setDataDrawerOpen(true)}
                         sx={{
-                          backgroundColor: '#0F4C81',
-                          '&:hover': { backgroundColor: '#0D3A5C' },
+                          backgroundColor: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                          color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
+                          fontWeight: 600,
+                          '&:hover': {
+                            backgroundColor: theme.palette.mode === 'dark' ? '#7DD3FC' : '#0D3A5C',
+                          },
                           whiteSpace: 'nowrap',
                           ml: 2,
                         }}
@@ -931,14 +951,23 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Card
                   sx={{
-                    backgroundColor: '#F7F9FC',
-                    '@media (prefers-color-scheme: dark)': {
-                      backgroundColor: '#1a2332',
-                    },
+                    backgroundColor:
+                      theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F7F9FC',
+                    border:
+                      theme.palette.mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.08)'
+                        : '1px solid #E2E8F0',
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 2,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Production Data Upload
                     </Typography>
                     <Alert icon={<InfoIcon />} severity="info" sx={{ mb: 2 }}>
@@ -949,7 +978,14 @@ const SimulatorPage: React.FC = () => {
                       variant="outlined"
                       startIcon={<UploadIcon />}
                       fullWidth
-                      sx={{ color: '#0F4C81', borderColor: '#0F4C81' }}
+                      sx={{
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                        borderColor:
+                          theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.4)' : '#0F4C81',
+                        '&:hover': {
+                          borderColor: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                        },
+                      }}
                     >
                       {productionFile ? `✓ ${productionFile.name}` : 'Select Production Data File'}
                       <input
@@ -963,21 +999,30 @@ const SimulatorPage: React.FC = () => {
                       <Button
                         variant="outlined"
                         onClick={() => setIsManualModalOpen(true)}
-                        sx={{ color: '#0F4C81', borderColor: '#0F4C81' }}
+                        sx={{
+                          color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                          borderColor:
+                            theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.4)' : '#0F4C81',
+                        }}
                       >
                         Manual Entry
                       </Button>
                       <Button
                         variant="outlined"
                         onClick={() => setIsAttachModalOpen(true)}
-                        sx={{ color: '#137c11', borderColor: '#137c11' }}
+                        sx={{ color: '#22c55e', borderColor: '#22c55e' }}
                       >
                         Attach Reservoir Model
                       </Button>
                       <Button
                         variant="contained"
                         onClick={uploadDataset}
-                        sx={{ ml: 'auto' }}
+                        sx={{
+                          ml: 'auto',
+                          backgroundColor:
+                            theme.palette.mode === 'dark' ? '#38BDF8' : 'primary.main',
+                          color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
+                        }}
                       >
                         Upload
                       </Button>
@@ -992,14 +1037,23 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Card
                   sx={{
-                    backgroundColor: '#F7F9FC',
-                    '@media (prefers-color-scheme: dark)': {
-                      backgroundColor: '#1a2332',
-                    },
+                    backgroundColor:
+                      theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F7F9FC',
+                    border:
+                      theme.palette.mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.08)'
+                        : '1px solid #E2E8F0',
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 2,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Reservoir Model Upload
                     </Typography>
                     <Alert icon={<InfoIcon />} severity="info" sx={{ mb: 2 }}>
@@ -1010,7 +1064,14 @@ const SimulatorPage: React.FC = () => {
                       variant="outlined"
                       startIcon={<UploadIcon />}
                       fullWidth
-                      sx={{ color: '#0F4C81', borderColor: '#0F4C81' }}
+                      sx={{
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                        borderColor:
+                          theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.4)' : '#0F4C81',
+                        '&:hover': {
+                          borderColor: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                        },
+                      }}
                     >
                       {modelFile ? `✓ ${modelFile.name}` : 'Select Model File'}
                       <input
@@ -1030,15 +1091,23 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12}>
                 <Card
                   sx={{
-                    backgroundColor: '#F7F9FC',
-                    '@media (prefers-color-scheme: dark)': {
-                      backgroundColor: '#1a2332',
-                    },
+                    backgroundColor:
+                      theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F7F9FC',
+                    border:
+                      theme.palette.mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.08)'
+                        : '1px solid #E2E8F0',
                   }}
                 >
                   <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 700,
+                          color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                        }}
+                      >
                         Quick Parameters
                       </Typography>
                       {datasetParams && (
@@ -1168,7 +1237,11 @@ const SimulatorPage: React.FC = () => {
                   <Button
                     variant="contained"
                     onClick={uploadDataset}
-                    sx={{ backgroundColor: '#0F4C81' }}
+                    sx={{
+                      backgroundColor:
+                        theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
+                    }}
                   >
                     Upload Dataset
                   </Button>
@@ -1183,7 +1256,14 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 3,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Algorithm Selection
                     </Typography>
                     <FormControl fullWidth sx={{ mb: 3 }}>
@@ -1222,7 +1302,14 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12} md={6}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 3,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Convergence Settings
                     </Typography>
                     <TextField
@@ -1262,7 +1349,14 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12}>
                 <Card>
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 3,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Run Simulation
                     </Typography>
 
@@ -1278,10 +1372,13 @@ const SimulatorPage: React.FC = () => {
                           startIcon={<PlayIcon />}
                           onClick={() => handleRunSimulation('baseline')}
                           sx={{
-                            backgroundColor: '#0F4C81',
+                            backgroundColor:
+                              theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                            color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
                             px: 4,
                             '&:hover': {
-                              backgroundColor: '#0a3857',
+                              backgroundColor:
+                                theme.palette.mode === 'dark' ? '#7DD3FC' : '#0a3857',
                             },
                           }}
                         >
@@ -1387,14 +1484,23 @@ const SimulatorPage: React.FC = () => {
               <Grid item xs={12}>
                 <Card
                   sx={{
-                    backgroundColor: '#F7F9FC',
-                    '@media (prefers-color-scheme: dark)': {
-                      backgroundColor: '#1a2332',
-                    },
+                    backgroundColor:
+                      theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.02)' : '#F7F9FC',
+                    border:
+                      theme.palette.mode === 'dark'
+                        ? '1px solid rgba(255, 255, 255, 0.08)'
+                        : '1px solid #E2E8F0',
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0F4C81' }}>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 700,
+                        mb: 2,
+                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      }}
+                    >
                       Simulation Details
                     </Typography>
                     <Grid container spacing={2}>

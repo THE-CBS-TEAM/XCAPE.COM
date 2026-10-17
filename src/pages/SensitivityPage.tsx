@@ -4,7 +4,7 @@ import * as ReactDOMClient from 'react-dom/client'
 import { Box, CircularProgress } from '@mui/material'
 import { useAuth } from '../context/AuthContext'
 
-const SENSITIVITY_LIB = '/libs/gas-lift-sensitivity-analyzer-frontend.umd.cjs'
+const SENSITIVITY_LIB = '/libs/gas-lift-sensitivity-analyzer-frontend.umd.js'
 const SENSITIVITY_CSS = '/libs/style.css'
 
 const SensitivityPage: React.FC = () => {

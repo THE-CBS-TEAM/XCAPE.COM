@@ -163,7 +163,7 @@ const UserDashboard: React.FC = () => {
     <Box
       sx={{
         minHeight: '100vh',
-        background: theme.palette.mode === 'dark' ? '#1a1a2e' : '#f5f5f5',
+        background: theme.palette.mode === 'dark' ? '#090D16' : '#F8FAFC',
         py: 4,
       }}
     >
@@ -179,7 +179,11 @@ const UserDashboard: React.FC = () => {
           <Grid item xs={12} md={8}>
             <Card
               sx={{
-                background: theme.palette.mode === 'dark' ? '#16213e' : '#fff',
+                background: theme.palette.mode === 'dark' ? '#111827' : '#FFFFFF',
+                border:
+                  theme.palette.mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.08)'
+                    : '1px solid #E2E8F0',
               }}
             >
               <CardContent sx={{ p: 3 }}>
@@ -267,7 +271,11 @@ const UserDashboard: React.FC = () => {
           <Grid item xs={12} md={4}>
             <Card
               sx={{
-                background: theme.palette.mode === 'dark' ? '#16213e' : '#fff',
+                background: theme.palette.mode === 'dark' ? '#111827' : '#FFFFFF',
+                border:
+                  theme.palette.mode === 'dark'
+                    ? '1px solid rgba(255, 255, 255, 0.08)'
+                    : '1px solid #E2E8F0',
               }}
             >
               <CardContent>
@@ -282,8 +290,8 @@ const UserDashboard: React.FC = () => {
                     label={stats.total_simulations}
                     size="small"
                     sx={{
-                      background: '#0F4C81',
-                      color: 'white',
+                      background: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
+                      color: theme.palette.mode === 'dark' ? '#090D16' : 'white',
                       fontWeight: 600,
                     }}
                   />
@@ -329,7 +337,11 @@ const UserDashboard: React.FC = () => {
         {/* Content Section */}
         <Card
           sx={{
-            background: theme.palette.mode === 'dark' ? '#16213e' : '#fff',
+            background: theme.palette.mode === 'dark' ? '#111827' : '#FFFFFF',
+            border:
+              theme.palette.mode === 'dark'
+                ? '1px solid rgba(255, 255, 255, 0.08)'
+                : '1px solid #E2E8F0',
           }}
         >
           <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>

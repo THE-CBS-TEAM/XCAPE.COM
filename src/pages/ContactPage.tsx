@@ -11,6 +11,7 @@ import {
   Alert,
   InputAdornment,
   CircularProgress,
+  useTheme,
 } from '@mui/material'
 import {
   Email as EmailIcon,
@@ -21,6 +22,10 @@ import {
 } from '@mui/icons-material'
 
 const ContactPage: React.FC = () => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+  const primaryColor = isDark ? '#38BDF8' : '#0F4C81'
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -63,7 +68,7 @@ const ContactPage: React.FC = () => {
             mb: 2,
             textAlign: 'center',
             fontWeight: 700,
-            color: '#0F4C81',
+            color: primaryColor,
           }}
         >
           Contact Us
@@ -100,7 +105,7 @@ const ContactPage: React.FC = () => {
         <Grid container spacing={4}>
           {/* Contact Information */}
           <Grid item xs={12} md={5}>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 4, color: '#0F4C81' }}>
+            <Typography variant="h5" sx={{ fontWeight: 700, mb: 4, color: primaryColor }}>
               Get in Touch
             </Typography>
 
@@ -113,12 +118,14 @@ const ContactPage: React.FC = () => {
                   left: 0,
                   right: 0,
                   height: '4px',
-                  background: 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
+                  background: isDark
+                    ? 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)'
+                    : 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
                 }}
               />
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <EmailIcon sx={{ color: '#0F4C81', fontSize: '1.8rem' }} />
+                  <EmailIcon sx={{ color: primaryColor, fontSize: '1.8rem' }} />
                   <Box>
                     <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                       Email
@@ -217,7 +224,7 @@ const ContactPage: React.FC = () => {
           <Grid item xs={12} md={7}>
             <Card>
               <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: '#0F4C81' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, mb: 3, color: primaryColor }}>
                   Send us a Message
                 </Typography>
 
@@ -245,7 +252,7 @@ const ContactPage: React.FC = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Box sx={{ color: '#0F4C81' }}>👤</Box>
+                          <Box sx={{ color: primaryColor }}>👤</Box>
                         </InputAdornment>
                       ),
                     }}
@@ -263,7 +270,7 @@ const ContactPage: React.FC = () => {
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <EmailIcon sx={{ color: '#0F4C81' }} />
+                          <EmailIcon sx={{ color: primaryColor }} />
                         </InputAdornment>
                       ),
                     }}
@@ -299,9 +306,10 @@ const ContactPage: React.FC = () => {
                       disabled={isSubmitting}
                       startIcon={isSubmitting ? <CircularProgress size={20} /> : <SendIcon />}
                       sx={{
-                        backgroundColor: '#0F4C81',
+                        backgroundColor: primaryColor,
+                        color: isDark ? '#090D16' : 'white',
                         '&:hover': {
-                          backgroundColor: '#0a3857',
+                          backgroundColor: isDark ? '#7DD3FC' : '#0a3857',
                         },
                         fontWeight: 700,
                       }}
@@ -313,9 +321,12 @@ const ContactPage: React.FC = () => {
                       variant="outlined"
                       size="large"
                       sx={{
-                        color: '#0F4C81',
-                        borderColor: '#0F4C81',
+                        color: primaryColor,
+                        borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : '#0F4C81',
                         fontWeight: 700,
+                        '&:hover': {
+                          borderColor: primaryColor,
+                        },
                       }}
                     >
                       Clear

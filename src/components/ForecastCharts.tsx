@@ -32,11 +32,11 @@ const CustomTooltip: React.FC<any> = ({ active, payload }) => {
     return (
       <Box
         sx={{
-          backgroundColor: isDark ? 'rgba(30, 30, 30, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-          border: `2px solid ${isDark ? '#0F4C81' : '#0F4C81'}`,
+          backgroundColor: isDark ? '#0F172A' : 'rgba(255, 255, 255, 0.95)',
+          border: isDark ? '1px solid rgba(56, 189, 248, 0.4)' : '1px solid #CBD5E1',
           borderRadius: '8px',
           padding: '12px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          boxShadow: isDark ? '0 4px 20px rgba(0, 0, 0, 0.6)' : '0 4px 6px rgba(0, 0, 0, 0.1)',
         }}
       >
         {payload.map((entry: any, index: number) => (
@@ -46,7 +46,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload }) => {
         ))}
         <div style={{ 
           fontSize: '11px', 
-          color: isDark ? '#aaa' : '#666', 
+          color: isDark ? '#94A3B8' : '#666', 
           marginTop: '8px', 
           fontStyle: 'italic' 
         }}>
@@ -237,9 +237,10 @@ const ForecastCharts: React.FC<ForecastProps> = ({ forecast, metric = 'oil', tit
 
       {/* Educational Footer */}
       <Alert severity="info" sx={{ mt: 2, fontSize: '12px', 
-        backgroundColor: isDark ? 'rgba(15, 76, 129, 0.15)' : '#E3F2FD',
-        color: isDark ? '#ccc' : '#0F4C81',
-        '& .MuiAlert-icon': { color: isDark ? '#0F4C81' : '#0F4C81' }
+        backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : '#E3F2FD',
+        color: isDark ? '#F8FAFC' : '#0F4C81',
+        border: isDark ? '1px solid rgba(56, 189, 248, 0.2)' : 'none',
+        '& .MuiAlert-icon': { color: isDark ? '#38BDF8' : '#0F4C81' }
       }}>
         <strong>📊 Understanding the Chart:</strong> The shaded area shows the range of possible outcomes (from P10 to P90).
         The thick line (P50) represents the most likely scenario. 

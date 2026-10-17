@@ -25,6 +25,7 @@ import {
   Paper,
   Chip,
   Alert,
+  useTheme,
 } from '@mui/material'
 import {
   Close as CloseIcon,
@@ -167,6 +168,9 @@ const RESERVOIR_FIELD_DESCRIPTIONS: { [key: string]: string } = {
 
 const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
   const [tabValue, setTabValue] = useState(0)
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+  const primaryColor = isDark ? '#38BDF8' : '#0F4C81'
   // Manual entry moved to Simulator input page; drawer no longer opens DataInputModal
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -206,7 +210,8 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
         sx: {
           width: { xs: '100%', sm: 600, md: 800 },
           maxWidth: '90vw',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          backgroundColor: isDark ? '#0B0F19' : '#F8FAFC',
+          borderLeft: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #E2E8F0',
         },
       }}
     >
@@ -222,43 +227,48 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
         <Box
           sx={{
             p: 2.5,
-            background: 'linear-gradient(135deg, #0F4C81 0%, #0D3A5C 100%)',
+            background: isDark
+              ? 'linear-gradient(135deg, #090D16 0%, #0F172A 100%)'
+              : 'linear-gradient(135deg, #0F4C81 0%, #0D3A5C 100%)',
             color: 'white',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            boxShadow: '0 4px 12px rgba(15, 76, 129, 0.2)',
+            borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+            boxShadow: isDark
+              ? '0 4px 20px -2px rgba(0, 0, 0, 0.5)'
+              : '0 4px 12px rgba(15, 76, 129, 0.2)',
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <DataObjectIcon sx={{ fontSize: 28 }} />
+            <DataObjectIcon sx={{ fontSize: 28, color: isDark ? '#38BDF8' : 'white' }} />
             <Box>
-              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.25 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800, mb: 0.25, color: isDark ? '#F8FAFC' : 'white' }}>
                 📊 Sample Data & Documentation
               </Typography>
-              <Typography variant="caption">
+              <Typography variant="caption" sx={{ color: isDark ? '#94A3B8' : 'rgba(255, 255, 255, 0.8)' }}>
                 Learn about required data formats and structures
               </Typography>
             </Box>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            {/* Manual Entry moved to the Simulator Input page */}
-            <IconButton onClick={onClose} sx={{ color: 'white' }}>
+            <IconButton onClick={onClose} sx={{ color: isDark ? '#94A3B8' : 'white', '&:hover': { color: isDark ? '#38BDF8' : 'white' } }}>
               <CloseIcon />
             </IconButton>
           </Box>
         </Box>
 
         {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+        <Box sx={{ borderBottom: 1, borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'divider', px: 2 }}>
           <Tabs
             value={tabValue}
             onChange={handleTabChange}
             variant="scrollable"
             scrollButtons="auto"
             sx={{
-              '& .MuiTab-root': { fontWeight: 600 },
-              '& .Mui-selected': { color: '#0F4C81' },
+              '& .MuiTab-root': { fontWeight: 600, color: isDark ? '#94A3B8' : 'inherit' },
+              '& .Mui-selected': { color: `${primaryColor} !important` },
+              '& .MuiTabs-indicator': { backgroundColor: primaryColor },
             }}
           >
             <Tab label="📈 Production Data" />
@@ -288,33 +298,33 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </Typography>
               </Alert>
 
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#0F4C81' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: primaryColor }}>
                 Sample Data Preview
               </Typography>
 
-              <TableContainer component={Paper} sx={{ mb: 2 }}>
+              <TableContainer component={Paper} sx={{ mb: 2, backgroundColor: isDark ? '#0F172A' : 'background.paper', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : undefined }}>
                 <Table size="small">
-                  <TableHead sx={{ backgroundColor: '#E3F2FD' }}>
+                  <TableHead sx={{ backgroundColor: isDark ? '#1E293B' : '#E3F2FD' }}>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 700, color: '#0F4C81' }}>Date</TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: '#0F4C81' }} align="right">
+                      <TableCell sx={{ fontWeight: 700, color: primaryColor }}>Date</TableCell>
+                      <TableCell sx={{ fontWeight: 700, color: primaryColor }} align="right">
                         Oil (BBL/D)
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: '#0F4C81' }} align="right">
+                      <TableCell sx={{ fontWeight: 700, color: primaryColor }} align="right">
                         Water (BBL/D)
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 700, color: '#0F4C81' }} align="right">
+                      <TableCell sx={{ fontWeight: 700, color: primaryColor }} align="right">
                         Pressure (PSI)
                       </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {SAMPLE_PRODUCTION_DATA.slice(0, 5).map((row, idx) => (
-                      <TableRow key={idx} hover>
-                        <TableCell>{row.date}</TableCell>
-                        <TableCell align="right">{row.oil_bbl.toFixed(1)}</TableCell>
-                        <TableCell align="right">{row.water_bbl.toFixed(1)}</TableCell>
-                        <TableCell align="right">{row.pressure_psi.toFixed(1)}</TableCell>
+                      <TableRow key={idx} hover sx={{ '&:hover': { backgroundColor: isDark ? 'rgba(255, 255, 255, 0.04)' : undefined } }}>
+                        <TableCell sx={{ color: isDark ? '#E2E8F0' : 'inherit' }}>{row.date}</TableCell>
+                        <TableCell align="right" sx={{ color: isDark ? '#E2E8F0' : 'inherit' }}>{row.oil_bbl.toFixed(1)}</TableCell>
+                        <TableCell align="right" sx={{ color: isDark ? '#E2E8F0' : 'inherit' }}>{row.water_bbl.toFixed(1)}</TableCell>
+                        <TableCell align="right" sx={{ color: isDark ? '#E2E8F0' : 'inherit' }}>{row.pressure_psi.toFixed(1)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -322,7 +332,7 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
               </TableContainer>
 
               <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#0F4C81' }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: primaryColor }}>
                   Field Descriptions
                 </Typography>
                 <Stack spacing={1}>
@@ -331,22 +341,22 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                       key={field}
                       sx={{
                         p: 1.5,
-                        backgroundColor: 'rgba(15, 76, 129, 0.05)',
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 76, 129, 0.05)',
                         borderRadius: '6px',
-                        border: '1px solid rgba(15, 76, 129, 0.1)',
+                        border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 76, 129, 0.1)',
                       }}
                     >
                       <Chip
                         label={field}
                         size="small"
                         sx={{
-                          backgroundColor: '#0F4C81',
-                          color: 'white',
+                          backgroundColor: primaryColor,
+                          color: isDark ? '#090D16' : 'white',
                           fontWeight: 600,
                           mb: 0.5,
                         }}
                       />
-                      <Typography variant="body2" sx={{ color: '#333', mt: 0.5 }}>
+                      <Typography variant="body2" sx={{ color: isDark ? '#CBD5E1' : '#333', mt: 0.5 }}>
                         {description}
                       </Typography>
                     </Box>
@@ -363,8 +373,10 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 }}
                 fullWidth
                 sx={{
-                  backgroundColor: '#0F4C81',
-                  '&:hover': { backgroundColor: '#0D3A5C' },
+                  backgroundColor: primaryColor,
+                  color: isDark ? '#090D16' : 'white',
+                  fontWeight: 600,
+                  '&:hover': { backgroundColor: isDark ? '#7DD3FC' : '#0D3A5C' },
                 }}
               >
                 Download Sample Production Data (CSV)
@@ -385,25 +397,31 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </Typography>
               </Alert>
 
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: '#0F4C81' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1.5, color: primaryColor }}>
                 Model Overview
               </Typography>
 
-              <Card sx={{ mb: 2, backgroundColor: '#F0F7FF' }}>
+              <Card
+                sx={{
+                  mb: 2,
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : '#F0F7FF',
+                  border: isDark ? '1px solid rgba(56, 189, 248, 0.2)' : '1px solid #BAE6FD',
+                }}
+              >
                 <CardContent>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Model:</strong> {SAMPLE_RESERVOIR_MODEL.model_name}
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Reservoir:</strong> {SAMPLE_RESERVOIR_MODEL.reservoir.name} ({SAMPLE_RESERVOIR_MODEL.reservoir.type})
                   </Typography>
-                  <Typography variant="body2">
+                  <Typography variant="body2" sx={{ color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Well:</strong> {SAMPLE_RESERVOIR_MODEL.well.name} ({SAMPLE_RESERVOIR_MODEL.well.type})
                   </Typography>
                 </CardContent>
               </Card>
 
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#0F4C81' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: primaryColor }}>
                 Reservoir Properties
               </Typography>
 
@@ -414,19 +432,19 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                       key={key}
                       sx={{
                         p: 1.5,
-                        backgroundColor: 'rgba(15, 76, 129, 0.05)',
+                        backgroundColor: isDark ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 76, 129, 0.05)',
                         borderRadius: '6px',
-                        border: '1px solid rgba(15, 76, 129, 0.1)',
+                        border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(15, 76, 129, 0.1)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
                     >
                       <Box>
-                        <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#94A3B8' : '#666', display: 'block' }}>
                           {key.replace(/_/g, ' ').toUpperCase()}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.25 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.25, color: isDark ? '#E2E8F0' : 'inherit' }}>
                           {RESERVOIR_FIELD_DESCRIPTIONS[key] || 'Property value'}
                         </Typography>
                       </Box>
@@ -436,7 +454,7 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </Stack>
               </Box>
 
-              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: '#0F4C81' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1, color: primaryColor }}>
                 Rock Properties (Calibration Parameters)
               </Typography>
 
@@ -447,19 +465,19 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                       key={key}
                       sx={{
                         p: 1.5,
-                        backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                        backgroundColor: isDark ? 'rgba(40, 167, 69, 0.08)' : 'rgba(40, 167, 69, 0.05)',
                         borderRadius: '6px',
-                        border: '1px solid rgba(40, 167, 69, 0.1)',
+                        border: isDark ? '1px solid rgba(40, 167, 69, 0.2)' : '1px solid rgba(40, 167, 69, 0.1)',
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
                     >
                       <Box>
-                        <Typography variant="caption" sx={{ color: '#666', display: 'block' }}>
+                        <Typography variant="caption" sx={{ color: isDark ? '#94A3B8' : '#666', display: 'block' }}>
                           {key.replace(/_/g, ' ').toUpperCase()}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.25 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600, mt: 0.25, color: isDark ? '#E2E8F0' : 'inherit' }}>
                           {RESERVOIR_FIELD_DESCRIPTIONS[key] || 'Rock property'}
                         </Typography>
                       </Box>
@@ -475,8 +493,10 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 onClick={() => downloadJSON(SAMPLE_RESERVOIR_MODEL, 'sample_reservoir_model.json')}
                 fullWidth
                 sx={{
-                  backgroundColor: '#0F4C81',
-                  '&:hover': { backgroundColor: '#0D3A5C' },
+                  backgroundColor: primaryColor,
+                  color: isDark ? '#090D16' : 'white',
+                  fontWeight: 600,
+                  '&:hover': { backgroundColor: isDark ? '#7DD3FC' : '#0D3A5C' },
                 }}
               >
                 Download Sample Reservoir Model (JSON)
@@ -493,22 +513,23 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </Typography>
               </Alert>
 
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: '#0F4C81' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: primaryColor }}>
                 1️⃣ Production Data Requirements
               </Typography>
 
-              <Card sx={{ mb: 2 }}>
+              <Card sx={{ mb: 2, backgroundColor: isDark ? '#111827' : 'background.paper', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : undefined }}>
                 <CardContent>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Format:</strong> CSV (Comma-Separated Values)
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Required Columns:</strong>
                   </Typography>
                   <Box
                     sx={{
                       pl: 2,
                       '& li': { mb: 0.5 },
+                      color: isDark ? '#CBD5E1' : 'inherit',
                     }}
                     component="ul"
                   >
@@ -534,22 +555,23 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </CardContent>
               </Card>
 
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: '#0F4C81' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: primaryColor }}>
                 2️⃣ Reservoir Model Requirements
               </Typography>
 
-              <Card sx={{ mb: 2 }}>
+              <Card sx={{ mb: 2, backgroundColor: isDark ? '#111827' : 'background.paper', border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : undefined }}>
                 <CardContent>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Format:</strong> JSON (JavaScript Object Notation)
                   </Typography>
-                  <Typography variant="body2" sx={{ mb: 1 }}>
+                  <Typography variant="body2" sx={{ mb: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                     <strong>Key Sections:</strong>
                   </Typography>
                   <Box
                     sx={{
                       pl: 2,
                       '& li': { mb: 0.5 },
+                      color: isDark ? '#CBD5E1' : 'inherit',
                     }}
                     component="ul"
                   >
@@ -569,59 +591,95 @@ const DataDrawer: React.FC<DataDrawerProps> = ({ open, onClose }) => {
                 </CardContent>
               </Card>
 
-              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: '#0F4C81' }}>
+              <Typography variant="h6" sx={{ fontWeight: 700, mb: 1.5, color: primaryColor }}>
                 3️⃣ How EnKF Uses This Data
               </Typography>
 
               <Stack spacing={1.5}>
-                <Card sx={{ backgroundColor: '#E3F2FD' }}>
+                <Card
+                  sx={{
+                    backgroundColor: isDark ? 'rgba(56, 189, 248, 0.08)' : '#E3F2FD',
+                    border: isDark ? '1px solid rgba(56, 189, 248, 0.2)' : 'none',
+                  }}
+                >
                   <CardContent>
                     <Chip
                       label="Step 1: Input"
                       size="small"
-                      sx={{ backgroundColor: '#0F4C81', color: 'white', fontWeight: 600 }}
+                      sx={{
+                        backgroundColor: primaryColor,
+                        color: isDark ? '#090D16' : 'white',
+                        fontWeight: 600,
+                      }}
                     />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ mt: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                       System loads production data (CSV) and reservoir model (JSON)
                     </Typography>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ backgroundColor: '#F3E5F5' }}>
+                <Card
+                  sx={{
+                    backgroundColor: isDark ? 'rgba(168, 85, 247, 0.08)' : '#F3E5F5',
+                    border: isDark ? '1px solid rgba(168, 85, 247, 0.2)' : 'none',
+                  }}
+                >
                   <CardContent>
                     <Chip
                       label="Step 2: Create Ensemble"
                       size="small"
-                      sx={{ backgroundColor: '#7B1FA2', color: 'white', fontWeight: 600 }}
+                      sx={{
+                        backgroundColor: isDark ? '#C084FC' : '#7B1FA2',
+                        color: isDark ? '#090D16' : 'white',
+                        fontWeight: 600,
+                      }}
                     />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ mt: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                       Generates 100 ensemble members with varied rock properties (porosity,
                       permeability) around initial estimates
                     </Typography>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ backgroundColor: '#E8F5E9' }}>
+                <Card
+                  sx={{
+                    backgroundColor: isDark ? 'rgba(34, 197, 94, 0.08)' : '#E8F5E9',
+                    border: isDark ? '1px solid rgba(34, 197, 94, 0.2)' : 'none',
+                  }}
+                >
                   <CardContent>
                     <Chip
                       label="Step 3: Calibrate"
                       size="small"
-                      sx={{ backgroundColor: '#388E3C', color: 'white', fontWeight: 600 }}
+                      sx={{
+                        backgroundColor: isDark ? '#4ADE80' : '#388E3C',
+                        color: isDark ? '#090D16' : 'white',
+                        fontWeight: 600,
+                      }}
                     />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ mt: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                       Updates each ensemble member to match production data better (EnKF iterations)
                     </Typography>
                   </CardContent>
                 </Card>
 
-                <Card sx={{ backgroundColor: '#FCE4EC' }}>
+                <Card
+                  sx={{
+                    backgroundColor: isDark ? 'rgba(244, 63, 94, 0.08)' : '#FCE4EC',
+                    border: isDark ? '1px solid rgba(244, 63, 94, 0.2)' : 'none',
+                  }}
+                >
                   <CardContent>
                     <Chip
                       label="Step 4: Forecast"
                       size="small"
-                      sx={{ backgroundColor: '#C2185B', color: 'white', fontWeight: 600 }}
+                      sx={{
+                        backgroundColor: isDark ? '#FB7185' : '#C2185B',
+                        color: isDark ? '#090D16' : 'white',
+                        fontWeight: 600,
+                      }}
                     />
-                    <Typography variant="body2" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ mt: 1, color: isDark ? '#E2E8F0' : 'inherit' }}>
                       Uses calibrated model to predict future production for 50+ days with uncertainty
                       bounds (P10, P50, P90)
                     </Typography>

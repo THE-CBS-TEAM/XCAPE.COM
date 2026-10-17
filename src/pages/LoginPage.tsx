@@ -76,8 +76,8 @@ const LoginPage: React.FC = () => {
         justifyContent: 'center',
         background:
           theme.palette.mode === 'dark'
-            ? 'linear-gradient(135deg, #1a1a2e 0%, #0f3460 100%)'
-            : 'linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%)',
+            ? 'linear-gradient(135deg, #090D16 0%, #0F172A 100%)'
+            : 'linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)',
         py: 4,
       }}
     >
@@ -90,12 +90,12 @@ const LoginPage: React.FC = () => {
                 sx={{
                   background:
                     theme.palette.mode === 'dark'
-                      ? 'rgba(255, 255, 255, 0.05)'
-                      : 'rgba(255, 255, 255, 0.8)',
+                      ? '#111827'
+                      : 'rgba(255, 255, 255, 0.9)',
                   backdropFilter: 'blur(10px)',
                   border:
                     theme.palette.mode === 'dark'
-                      ? '1px solid rgba(255, 255, 255, 0.1)'
+                      ? '1px solid rgba(255, 255, 255, 0.08)'
                       : '1px solid rgba(0, 0, 0, 0.1)',
                   p: 4,
                 }}
@@ -279,15 +279,22 @@ const LoginPage: React.FC = () => {
                   onClick={handleSubmit}
                   disabled={isLoading || loading}
                   sx={{
-                    background: 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
-                    color: 'white',
-                    fontWeight: 600,
+                    background:
+                      theme.palette.mode === 'dark'
+                        ? 'linear-gradient(135deg, #0284C7 0%, #38BDF8 100%)'
+                        : 'linear-gradient(135deg, #0F4C81 0%, #1F7A8C 100%)',
+                    color: theme.palette.mode === 'dark' ? '#090D16' : 'white',
+                    fontWeight: 700,
                     py: 1.5,
                     mb: 2,
+                    borderRadius: '8px',
                     transition: 'all 0.3s ease',
                     '&:hover': {
                       transform: 'translateY(-2px)',
-                      boxShadow: '0 10px 25px rgba(15, 76, 129, 0.3)',
+                      boxShadow:
+                        theme.palette.mode === 'dark'
+                          ? '0 10px 25px rgba(56, 189, 248, 0.4)'
+                          : '0 10px 25px rgba(15, 76, 129, 0.3)',
                     },
                   }}
                 >

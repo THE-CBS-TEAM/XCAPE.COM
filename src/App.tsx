@@ -17,6 +17,7 @@ import UserGuidePage from '@pages/UserGuidePage'
 import SimulatorPage from '@pages/SimulatorPage'
 import AboutPage from '@pages/AboutPage'
 import ProfilesPage from '@pages/ProfilesPage'
+import DeveloperProfilePage from '@pages/DeveloperProfilePage'
 import ContactPage from '@pages/ContactPage'
 import LoginPage from '@pages/LoginPage'
 import RegisterPage from '@pages/RegisterPage'
@@ -39,6 +40,7 @@ const Navigation: React.FC = () => {
     { label: 'Concepts', path: '/concepts' },
     { label: 'User Guide', path: '/guide' },
     { label: 'About', path: '/about' },
+    { label: 'Developer', path: '/developer' },
     { label: 'Contact', path: '/contact' },
   ]
 
@@ -56,16 +58,21 @@ const Navigation: React.FC = () => {
     navigate('/')
   }
 
+  const isDark = themeMode === 'dark'
+
   return (
     <Box
       sx={{
-        bgcolor: 'primary.main',
+        bgcolor: isDark ? '#0B0F19' : 'primary.main',
         color: 'white',
-        p: 2,
+        px: { xs: 2, md: 4 },
+        py: 1.5,
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        boxShadow: 2,
+        borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : 'none',
+        boxShadow: isDark ? '0 4px 20px -2px rgba(0, 0, 0, 0.5)' : 2,
+        transition: 'background-color 0.2s ease, border-color 0.2s ease',
       }}
     >
       <Box
@@ -76,7 +83,8 @@ const Navigation: React.FC = () => {
           fontSize: '1.3rem',
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
+          gap: 1.5,
+          letterSpacing: '-0.02em',
         }}
       >
         <Box
@@ -84,15 +92,17 @@ const Navigation: React.FC = () => {
           src="/xcapeblackBG.png"
           alt="XCAPE"
           sx={{
-            height: 30,
-            filter: 'brightness(180%)',
+            height: 32,
+            filter: isDark ? 'brightness(200%) drop-shadow(0 0 8px rgba(56, 189, 248, 0.3))' : 'brightness(180%)',
           }}
         />
-        XCAPE
+        <Box component="span" sx={{ color: isDark ? '#F8FAFC' : 'white' }}>
+          XCAPE
+        </Box>
       </Box>
 
       {/* Desktop Navigation */}
-      <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 3 }}>
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
         {navLinks.map((link) => (
           <Button
             key={link.path}
@@ -101,10 +111,14 @@ const Navigation: React.FC = () => {
             sx={{
               fontWeight: 500,
               textTransform: 'none',
-              fontSize: '1rem',
+              fontSize: '0.95rem',
+              color: isDark ? '#94A3B8' : 'white',
+              px: 1.5,
+              py: 0.75,
+              borderRadius: '8px',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: 1,
+                color: isDark ? '#38BDF8' : 'white',
+                backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)',
               },
             }}
           >
@@ -113,16 +127,25 @@ const Navigation: React.FC = () => {
         ))}
         {isAuthenticated && (
           <Button
-            color="inherit"
             onClick={() => navigate('/simulator')}
             sx={{
-              fontWeight: 500,
+              fontWeight: 600,
               textTransform: 'none',
-              fontSize: '1rem',
-              background: 'rgba(255, 255, 255, 0.2)',
+              fontSize: '0.95rem',
+              ml: 1,
+              px: 2,
+              py: 0.75,
+              borderRadius: '8px',
+              background: isDark
+                ? 'rgba(56, 189, 248, 0.12)'
+                : 'rgba(255, 255, 255, 0.2)',
+              color: isDark ? '#38BDF8' : 'white',
+              border: isDark ? '1px solid rgba(56, 189, 248, 0.3)' : 'none',
               '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.3)',
-                borderRadius: 1,
+                background: isDark
+                  ? 'rgba(56, 189, 248, 0.2)'
+                  : 'rgba(255, 255, 255, 0.3)',
+                boxShadow: isDark ? '0 0 12px rgba(56, 189, 248, 0.25)' : 'none',
               },
             }}
           >
@@ -132,7 +155,7 @@ const Navigation: React.FC = () => {
       </Box>
 
       {/* Right side - Auth & Theme */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
         {isAuthenticated ? (
           <>
             <Button
@@ -141,7 +164,9 @@ const Navigation: React.FC = () => {
               sx={{
                 fontWeight: 500,
                 textTransform: 'none',
+                color: isDark ? '#94A3B8' : 'white',
                 display: { xs: 'none', md: 'block' },
+                '&:hover': { color: isDark ? '#38BDF8' : 'white' },
               }}
             >
               Dashboard
@@ -150,10 +175,13 @@ const Navigation: React.FC = () => {
               onClick={handleMenuOpen}
               sx={{
                 cursor: 'pointer',
-                background: 'rgba(255, 255, 255, 0.3)',
+                background: isDark ? '#1E293B' : 'rgba(255, 255, 255, 0.3)',
+                color: isDark ? '#38BDF8' : 'white',
+                border: isDark ? '1px solid rgba(56, 189, 248, 0.3)' : 'none',
                 width: 36,
                 height: 36,
                 fontSize: '0.9rem',
+                fontWeight: 600,
               }}
             >
               {user?.first_name.charAt(0)}{user?.last_name.charAt(0)}
@@ -162,15 +190,26 @@ const Navigation: React.FC = () => {
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  minWidth: 160,
+                  bgcolor: isDark ? '#111827' : 'background.paper',
+                  border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #E2E8F0',
+                  boxShadow: isDark ? '0 10px 25px -5px rgba(0, 0, 0, 0.7)' : 3,
+                },
+              }}
             >
-              <MenuItem disabled>{user?.first_name} {user?.last_name}</MenuItem>
+              <MenuItem disabled sx={{ color: isDark ? '#64748B' : 'text.secondary', fontSize: '0.85rem' }}>
+                {user?.first_name} {user?.last_name}
+              </MenuItem>
               <MenuItem onClick={() => { navigate('/dashboard'); handleMenuClose() }}>
                 Dashboard
               </MenuItem>
               <MenuItem onClick={() => { navigate('/simulator'); handleMenuClose() }}>
                 Simulator
               </MenuItem>
-              <MenuItem onClick={handleLogout}>
+              <MenuItem onClick={handleLogout} sx={{ color: '#EF4444' }}>
                 Logout
               </MenuItem>
             </Menu>
@@ -183,7 +222,9 @@ const Navigation: React.FC = () => {
               sx={{
                 fontWeight: 500,
                 textTransform: 'none',
+                color: isDark ? '#94A3B8' : 'white',
                 display: { xs: 'none', sm: 'block' },
+                '&:hover': { color: isDark ? '#38BDF8' : 'white' },
               }}
             >
               Login
@@ -191,14 +232,15 @@ const Navigation: React.FC = () => {
             <Button
               variant="outlined"
               sx={{
-                color: 'white',
-                borderColor: 'white',
+                color: isDark ? '#38BDF8' : 'white',
+                borderColor: isDark ? 'rgba(56, 189, 248, 0.4)' : 'white',
                 textTransform: 'none',
                 fontWeight: 500,
                 display: { xs: 'none', sm: 'block' },
+                borderRadius: '8px',
                 '&:hover': {
-                  borderColor: 'white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderColor: isDark ? '#38BDF8' : 'white',
+                  backgroundColor: isDark ? 'rgba(56, 189, 248, 0.1)' : 'rgba(255, 255, 255, 0.1)',
                 },
               }}
               onClick={() => navigate('/register')}
@@ -213,6 +255,14 @@ const Navigation: React.FC = () => {
           color="inherit"
           onClick={() => dispatch(toggleTheme())}
           title={`Switch to ${themeMode === 'light' ? 'dark' : 'light'} mode`}
+          sx={{
+            color: isDark ? '#FBBF24' : 'white',
+            p: 1,
+            borderRadius: '8px',
+            '&:hover': {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)',
+            },
+          }}
         >
           {themeMode === 'light' ? <DarkIcon /> : <LightIcon />}
         </IconButton>
@@ -250,6 +300,8 @@ const AppContent: React.FC = () => {
             <Route path="/concepts" element={<ConceptsPage />} />
             <Route path="/guide" element={<UserGuidePage />} />
             <Route path="/about" element={<AboutPage />} />
+            <Route path="/developer" element={<DeveloperProfilePage />} />
+            <Route path="/profile" element={<DeveloperProfilePage />} />
             <Route path="/profiles/:section" element={<ProfilesPage />} />
             <Route path="/contact" element={<ContactPage />} />
             

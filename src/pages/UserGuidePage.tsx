@@ -13,6 +13,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  useTheme,
 } from '@mui/material'
 import {
   CheckCircle as CheckIcon,
@@ -46,6 +47,10 @@ const steps = [
 ]
 
 const UserGuidePage: React.FC = () => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+  const primaryColor = isDark ? '#38BDF8' : '#0F4C81'
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ py: 6 }}>
@@ -55,7 +60,7 @@ const UserGuidePage: React.FC = () => {
             mb: 2,
             textAlign: 'center',
             fontWeight: 700,
-            color: '#0F4C81',
+            color: primaryColor,
           }}
         >
           XCAPE User Guide
@@ -99,7 +104,7 @@ const UserGuidePage: React.FC = () => {
             orientation="vertical"
             sx={{
               '& .MuiStepConnector-root': {
-                color: '#0F4C81',
+                color: isDark ? 'rgba(56, 189, 248, 0.3)' : '#0F4C81',
               },
             }}
           >
@@ -112,8 +117,9 @@ const UserGuidePage: React.FC = () => {
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        backgroundColor: '#0F4C81',
-                        color: 'white',
+                        backgroundColor: primaryColor,
+                        color: isDark ? '#090D16' : 'white',
+                        fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -127,7 +133,7 @@ const UserGuidePage: React.FC = () => {
                     '& .MuiStepLabel-label': {
                       fontSize: '1.1rem',
                       fontWeight: 600,
-                      color: '#0F4C81',
+                      color: primaryColor,
                     },
                   }}
                 >
@@ -150,8 +156,8 @@ const UserGuidePage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <UploadIcon sx={{ color: '#0F4C81', fontSize: '2rem' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                  <UploadIcon sx={{ color: primaryColor, fontSize: '2rem' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: primaryColor }}>
                     Step 1: Upload Data
                   </Typography>
                 </Box>
@@ -190,8 +196,8 @@ const UserGuidePage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <SettingsIcon sx={{ color: '#0F4C81', fontSize: '2rem' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                  <SettingsIcon sx={{ color: primaryColor, fontSize: '2rem' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: primaryColor }}>
                     Step 2: Configure Parameters
                   </Typography>
                 </Box>
@@ -228,8 +234,8 @@ const UserGuidePage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <RunIcon sx={{ color: '#0F4C81', fontSize: '2rem' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                  <RunIcon sx={{ color: primaryColor, fontSize: '2rem' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: primaryColor }}>
                     Step 3: Run Simulation
                   </Typography>
                 </Box>
@@ -266,8 +272,8 @@ const UserGuidePage: React.FC = () => {
             <Card sx={{ height: '100%' }}>
               <CardContent>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                  <ChartIcon sx={{ color: '#0F4C81', fontSize: '2rem' }} />
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                  <ChartIcon sx={{ color: primaryColor, fontSize: '2rem' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 700, color: primaryColor }}>
                     Step 4: Analyze Results
                   </Typography>
                 </Box>
@@ -303,20 +309,18 @@ const UserGuidePage: React.FC = () => {
         {/* Tips & Best Practices */}
         <Card
           sx={{
-            backgroundColor: '#F7F9FC',
-            '@media (prefers-color-scheme: dark)': {
-              backgroundColor: '#1a2332',
-            },
+            backgroundColor: isDark ? 'rgba(255, 255, 255, 0.02)' : '#F7F9FC',
+            border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #E2E8F0',
           }}
         >
           <CardContent>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: primaryColor, mb: 2 }}>
               💡 Tips & Best Practices
             </Typography>
             <List>
               <ListItem>
                 <ListItemIcon>
-                  <CheckIcon sx={{ color: '#0F4C81' }} />
+                  <CheckIcon sx={{ color: primaryColor }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Data Quality"
@@ -325,7 +329,7 @@ const UserGuidePage: React.FC = () => {
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <CheckIcon sx={{ color: '#0F4C81' }} />
+                  <CheckIcon sx={{ color: primaryColor }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Parameter Bounds"
@@ -334,7 +338,7 @@ const UserGuidePage: React.FC = () => {
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <CheckIcon sx={{ color: '#0F4C81' }} />
+                  <CheckIcon sx={{ color: primaryColor }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Ensemble Size"
@@ -343,7 +347,7 @@ const UserGuidePage: React.FC = () => {
               </ListItem>
               <ListItem>
                 <ListItemIcon>
-                  <CheckIcon sx={{ color: '#0F4C81' }} />
+                  <CheckIcon sx={{ color: primaryColor }} />
                 </ListItemIcon>
                 <ListItemText
                   primary="Iterative Refinement"
