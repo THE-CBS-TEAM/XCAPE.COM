@@ -1337,6 +1337,10 @@ const SimulatorPage: React.FC = () => {
                                   forecast_period_days: 365,
                                 }),
                               })
+                              if (enkfRes.status === 202) {
+                                await enkfRes.json()
+                                return
+                              }
                               if (!enkfRes.ok) throw new Error('EnKF failed')
                               const result = await enkfRes.json()
 

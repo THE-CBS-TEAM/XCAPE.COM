@@ -17,6 +17,8 @@ const initialState: InterpretationState = {
   drawerOpen: false,
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+
 // Async thunk for fetching interpretation
 export const fetchInterpretation = createAsyncThunk(
   'interpretation/fetchInterpretation',
@@ -26,7 +28,7 @@ export const fetchInterpretation = createAsyncThunk(
   ) => {
     try {
       const response = await fetch(
-        `http://localhost:8000/api/simulations/${simulationId}/interpret/`,
+        `${API_BASE}/simulations/${simulationId}/interpret/`,
         {
           method: 'POST',
           headers: {
