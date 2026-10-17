@@ -37,6 +37,7 @@ import StorageIcon from '@mui/icons-material/Storage';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import SensitivityIcon from '@mui/icons-material/Assessment';
 import SensitivityPage from './SensitivityPage';
+import { FormulasDrawer } from '../components/FormulasDrawer';
 import { useAuth } from '../context/AuthContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -59,6 +60,7 @@ const UserDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [formulasDrawerOpen, setFormulasDrawerOpen] = useState(false);
   const [editData, setEditData] = useState({
     first_name: '',
     last_name: '',
@@ -209,7 +211,7 @@ const UserDashboard: React.FC = () => {
                       {userData.institution || 'Institution not set'} •{' '}
                       {userData.department || 'Department not set'}
                     </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                    <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
                       <Button
                         variant="outlined"
                         size="small"
@@ -218,6 +220,19 @@ const UserDashboard: React.FC = () => {
                         sx={{ textTransform: 'none' }}
                       >
                         Edit Profile
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setFormulasDrawerOpen(true)}
+                        sx={{
+                          textTransform: 'none',
+                          borderColor: '#DDBB75',
+                          color: '#DDBB75',
+                          '&:hover': { backgroundColor: 'rgba(221,187,117,0.08)' },
+                        }}
+                      >
+                        📘 Formulas & Metrics
                       </Button>
                       <Button
                         variant="contained"
@@ -507,6 +522,9 @@ const UserDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </Container>
+
+      {/* Formulas Drawer */}
+      <FormulasDrawer open={formulasDrawerOpen} onClose={() => setFormulasDrawerOpen(false)} />
 
       {/* Edit Profile Dialog */}
       <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="sm" fullWidth>

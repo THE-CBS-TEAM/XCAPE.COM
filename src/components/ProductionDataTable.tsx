@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Plus, Trash2, AlertCircle, Check } from 'lucide-react';
 
 interface ProductionDataRow {
@@ -43,35 +43,6 @@ export const ProductionDataTable: React.FC<ProductionDataTableProps> = ({
 
   const [errors, setErrors] = useState<Record<number, Record<string, string>>>({});
   const [pasteError, setPasteError] = useState<string>('');
-
-  const validateRow = (row: ProductionDataRow, rowIndex: number): boolean => {
-    const rowErrors: Record<string, string> = {};
-
-    REQUIRED_COLUMNS.forEach((col) => {
-      const value = row[col as keyof ProductionDataRow];
-      if (value === '' || value === null) {
-        rowErrors[col] = 'Required';
-      } else if (isNaN(Number(value))) {
-        rowErrors[col] = 'Must be a number';
-      }
-    });
-
-    if (Object.keys(rowErrors).length > 0) {
-      setErrors((prev) => ({
-        ...prev,
-        [rowIndex]: rowErrors,
-      }));
-      return false;
-    }
-
-    // Remove error for this row if it was fixed
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-      delete newErrors[rowIndex];
-      return newErrors;
-    });
-    return true;
-  };
 
   const handleCellChange = (rowIndex: number, column: string, value: string) => {
     const newRows = [...rows];

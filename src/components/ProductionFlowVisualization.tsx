@@ -15,6 +15,11 @@ interface ProductionFlowProps {
   title?: string
 }
 
+const formatProductionRate = (value: number, fluidType: 'oil' | 'water' | 'gas') => {
+  const unit = fluidType === 'gas' ? 'scf/d' : 'STB/d'
+  return `${value.toLocaleString(undefined, { maximumFractionDigits: 1 })} ${unit}`
+}
+
 // Enhanced Realistic 3D Pipe Component with advanced visuals
 const RealisticPipe: React.FC<{
   fluidType: 'oil' | 'water' | 'gas'
@@ -168,7 +173,7 @@ const RealisticPipe: React.FC<{
         fontWeight="600"
         fill={isDark ? '#aaa' : '#666'}
       >
-        Flow: {flowRate.toFixed(0)} m³/h
+        Flow: {formatProductionRate(flowRate, fluidType)}
       </text>
 
       {/* Pressure gauge container */}
@@ -420,7 +425,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={prior.pressure}
                     isDark={isDark}
                     yPosition={50}
-                    flowRate={prior.oil * 0.8}
+                    flowRate={prior.oil}
                   />
                   <RealisticPipe
                     fluidType="water"
@@ -428,7 +433,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={prior.pressure}
                     isDark={isDark}
                     yPosition={150}
-                    flowRate={prior.water * 0.8}
+                    flowRate={prior.water}
                   />
                   <RealisticPipe
                     fluidType="gas"
@@ -436,7 +441,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={prior.pressure}
                     isDark={isDark}
                     yPosition={250}
-                    flowRate={prior.gas * 0.8}
+                    flowRate={prior.gas}
                   />
 
                   {/* Left side labels */}
@@ -466,7 +471,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Oil
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#D4A574' }}>
-                    {prior.oil.toFixed(1)}%
+                    {formatProductionRate(prior.oil, 'oil')}
                   </Typography>
                 </Box>
                 <Box
@@ -481,7 +486,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Water
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#64B5F6' }}>
-                    {prior.water.toFixed(1)}%
+                    {formatProductionRate(prior.water, 'water')}
                   </Typography>
                 </Box>
                 <Box
@@ -496,7 +501,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Gas
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#FFB74D' }}>
-                    {prior.gas.toFixed(1)}%
+                    {formatProductionRate(prior.gas, 'gas')}
                   </Typography>
                 </Box>
               </Box>
@@ -565,7 +570,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={posterior.pressure}
                     isDark={isDark}
                     yPosition={50}
-                    flowRate={posterior.oil * 0.8}
+                    flowRate={posterior.oil}
                   />
                   <RealisticPipe
                     fluidType="water"
@@ -573,7 +578,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={posterior.pressure}
                     isDark={isDark}
                     yPosition={150}
-                    flowRate={posterior.water * 0.8}
+                    flowRate={posterior.water}
                   />
                   <RealisticPipe
                     fluidType="gas"
@@ -581,7 +586,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     pressure={posterior.pressure}
                     isDark={isDark}
                     yPosition={250}
-                    flowRate={posterior.gas * 0.8}
+                    flowRate={posterior.gas}
                   />
 
                   {/* Left side labels */}
@@ -611,7 +616,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Oil
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#D4A574' }}>
-                    {posterior.oil.toFixed(1)}%
+                    {formatProductionRate(posterior.oil, 'oil')}
                   </Typography>
                 </Box>
                 <Box
@@ -626,7 +631,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Water
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#64B5F6' }}>
-                    {posterior.water.toFixed(1)}%
+                    {formatProductionRate(posterior.water, 'water')}
                   </Typography>
                 </Box>
                 <Box
@@ -641,7 +646,7 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
                     Gas
                   </Typography>
                   <Typography sx={{ fontWeight: 700, color: '#FFB74D' }}>
-                    {posterior.gas.toFixed(1)}%
+                    {formatProductionRate(posterior.gas, 'gas')}
                   </Typography>
                 </Box>
               </Box>
@@ -662,7 +667,8 @@ const ProductionFlowVisualization: React.FC<ProductionFlowProps> = ({
         }}
       >
         <Typography variant="body2" sx={{ color: textColor }}>
-          <strong>💡 How to Read This:</strong> The width of each pipe represents the volume/rate of that fluid.
+          <strong>💡 How to Read This:</strong> Values show production rates, not percentages: oil and water are in STB/d, gas is in Mscf/d.
+          Since these are different units, they should not be expected to add up to 100%.
           Flow particles travel through the pipes at speeds proportional to flow rates. The pressure gauge shows reservoir pressure.
           Left shows initial model, right shows calibrated model after matching production data. Notice how fluid distributions change!
         </Typography>

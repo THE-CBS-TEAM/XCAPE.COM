@@ -22,11 +22,23 @@ const HomePage: React.FC = () => {
       image: '/image2.png',
     },
     {
+    title: 'Sensitivity Analysis',
+    description: 'Sensitivity analysis is the process of determining the optimal operating condition of a gas lift well that would yield maximum oil production ',
+    icon:'⚙️',
+    image:'/Xcape.png'
+    },
+    {
       title: 'Ensemble Kalman Filter',
       description:
         'EnKF is an advanced statistical algorithm that automates the history matching process and quantifies prediction uncertainty.',
       icon: '🔄',
       image: '/image7.png',
+    },
+    {
+      title:'Gas Lift Well',
+      description:' Gas lifting is the process of injecting gas into a well to maximize oil production ',
+      icon:'🔮',
+      image:'/xcapeblackBG.png',
     },
     {
       title: 'Forecasting',
@@ -89,16 +101,7 @@ const HomePage: React.FC = () => {
 
         {/* Content */}
         <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
-          <Box
-            component="img"
-            src="/xcapeblackBG.png"
-            alt="XCAPE Logo"
-            sx={{
-              maxHeight: { xs: 80, md: 120 },
-              mb: 3,
-              filter: 'brightness(200%)',
-            }}
-          />
+     
           <Typography variant="h2" sx={{ mb: 2, fontWeight: 700 }}>
             XCAPE
           </Typography>

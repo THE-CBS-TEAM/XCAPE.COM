@@ -24,7 +24,7 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
   datasetName: defaultName,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>('file');
-  const [inputMode, setInputMode] = useState<InputMode>('production');
+  const [, setInputMode] = useState<InputMode>('production');
   const [step, setStep] = useState<'production' | 'reservoir' | 'review'>('production');
   const [name, setName] = useState(defaultName || '');
   const [description, setDescription] = useState('');

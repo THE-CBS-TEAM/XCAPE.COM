@@ -19,6 +19,7 @@ import {
   Tab,
   Tabs,
   LinearProgress,
+  useTheme,
 } from '@mui/material'
 import {
   Upload as UploadIcon,
@@ -59,6 +60,7 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const SimulatorPage: React.FC = () => {
+  const theme = useTheme()
   const activeStep = 0
   const [tabValue, setTabValue] = useState(0)
   const [algorithmType, setAlgorithmType] = useState('enkf')
@@ -133,6 +135,7 @@ const SimulatorPage: React.FC = () => {
     }
 
     try {
+      // Step 1: Upload production CSV
       const formData = new FormData()
       formData.append('file', productionFile)
       formData.append('name', `Production Data - ${new Date().toLocaleString()}`)
@@ -153,11 +156,39 @@ const SimulatorPage: React.FC = () => {
       }
 
       const data = await res.json()
-      setUploadedDatasetId(data.id)
-      setUploadSuccess(`Dataset uploaded successfully (ID: ${data.id}) - Data parsed and ready to use!`)
+      const newDatasetId = data.id
+
+      // Step 2: If a reservoir model JSON file was selected, read and attach it
+      if (modelFile && newDatasetId) {
+        try {
+          const modelText = await modelFile.text()
+          const modelJson = JSON.parse(modelText)
+
+          const attachRes = await fetch(`${API_BASE}/datasets/${newDatasetId}/attach_model/`, {
+            method: 'PATCH',
+            headers: {
+              Authorization: token ? `Token ${token}` : '',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ reservoir_model: modelJson }),
+          })
+
+          if (!attachRes.ok) {
+            console.warn('[MODEL] Failed to attach reservoir model - OOIP may be limited')
+          } else {
+            console.log('[MODEL] Reservoir model attached to dataset', newDatasetId)
+          }
+        } catch (modelErr) {
+          console.warn('[MODEL] Could not parse or attach reservoir model JSON:', modelErr)
+        }
+      }
+
+      setUploadedDatasetId(newDatasetId)
+      setUploadSuccess(`Dataset uploaded successfully (ID: ${newDatasetId})${modelFile ? ' — with reservoir model' : ''} - Ready to use!`)
       setProductionFile(null)
+      setModelFile(null)
       setUploadError('')
-      console.log('[DATASET] Stored dataset ID:', data.id, 'Name:', data.name)
+      console.log('[DATASET] Stored dataset ID:', newDatasetId, 'Name:', data.name)
     } catch (err) {
       console.error('Upload failed', err)
       setUploadError(`Upload error: ${err instanceof Error ? err.message : 'Unknown error'}`)
@@ -165,6 +196,7 @@ const SimulatorPage: React.FC = () => {
   }
 
   // When a dataset is selected/created, fetch it to see if it contains reservoir_model
+  // AUTO-APPLY: values are immediately applied to Quick Parameters fields (locked)
   useEffect(() => {
     if (!uploadedDatasetId) {
       setDatasetParams(null)
@@ -179,94 +211,92 @@ const SimulatorPage: React.FC = () => {
         if (!res.ok) return
         const data = await res.json()
         const prod = data.production_data || {}
-        let rm = null
+
+        // Resolve the reservoir model object from any supported location
+        let rm: any = null
         if (prod && typeof prod === 'object') {
-          rm = prod.reservoir_model || prod.raw_json || prod
+          rm = prod.reservoir_model || prod.raw_json || null
+          // If still null but prod itself looks like a reservoir model (not a production array), use it
+          if (!rm && !Array.isArray(prod) && !prod.Days && !prod.Oil_bbl) {
+            rm = prod
+          }
         }
+
+        const normalizeFraction = (v: any) => {
+          const n = Number(v)
+          if (!isFinite(n)) return null
+          let x = n
+          if (x > 1) {
+            if (x <= 100) x = x / 100
+            else if (x <= 1000) x = x / 100
+            else x = x / 10000
+          }
+          if (x < 0) return null
+          if (x > 1) x = 1
+          return x
+        }
+
+        let ip: number | null = null
+        let por: number | null = null
+        let perm: number | null = null
+        let wsat: number | null = null
 
         if (rm && typeof rm === 'object') {
-          // Extract common parameter names (best-effort)
-          let ip: number | null = null
-          let por: number | null = null
-          let perm: number | null = null
-          let wsat: number | null = null
+          // Top-level flat fields
+          ip   = rm.initial_pressure ?? rm.pressure ?? rm.initial_pressure_bar ?? rm.pressure_bar ?? null
+          por  = rm.porosity ?? rm.porosity_fraction ?? rm.poro ?? null
+          perm = rm.permeability ?? rm.perm ?? rm.permeability_md ?? null
+          wsat = rm.water_saturation ?? rm.wat_sat ?? rm.initial_water_saturation ?? null
 
-          ip = (rm.initial_pressure ?? rm.pressure ?? rm.initial_pressure_bar ?? rm.pressure_bar) || null
-          por = (rm.porosity ?? rm.porosity_fraction ?? rm.poro) || null
-          perm = (rm.permeability ?? rm.perm ?? rm.permeability_md) || null
-          wsat = (rm.water_saturation ?? rm.water_saturation ?? rm.wat_sat ?? rm.initial_water_saturation) || null
-
-          // If nested rock_properties/fluid_properties exist, prefer those
-          if (rm.rock_properties && typeof rm.rock_properties === 'object') {
-            por = por || (rm.rock_properties.porosity ?? rm.rock_properties.poro ?? rm.rock_properties.porosity_fraction) || null
-            perm = perm || (rm.rock_properties.permeability ?? rm.rock_properties.perm ?? rm.rock_properties.permeability_md) || null
-          }
-
+          // fluid_properties section
           if (rm.fluid_properties && typeof rm.fluid_properties === 'object') {
-            ip = ip || (rm.fluid_properties.initial_pressure ?? rm.fluid_properties.pressure) || null
-            wsat = wsat || (rm.fluid_properties.water_saturation ?? rm.fluid_properties.waterSat) || null
+            const fp = rm.fluid_properties
+            ip   = ip   ?? fp.initial_pressure ?? fp.pressure ?? null
+            wsat = wsat ?? fp.water_saturation ?? fp.waterSat ?? null
           }
 
-          // Normalize porosity/water saturation to fraction (0-1). Accept numbers or numeric strings.
-          const normalizeFraction = (v: any) => {
-            const n = Number(v)
-            if (!isFinite(n)) return null
-            let x = n
-            if (x > 1) {
-              // Common case: value in percent (0-100)
-              if (x <= 100) x = x / 100
-              else if (x <= 1000) x = x / 100
-              else x = x / 10000
-            }
-            if (x < 0) return null
-            if (x > 1) x = 1
-            return x
+          // rock_properties section
+          if (rm.rock_properties && typeof rm.rock_properties === 'object') {
+            const rp = rm.rock_properties
+            por  = por  ?? rp.porosity ?? rp.poro ?? rp.porosity_fraction ?? null
+            perm = perm ?? rp.permeability ?? rp.perm ?? rp.permeability_md ?? null
           }
 
-          por = normalizeFraction(por)
+          // Also check legacy reservoir section
+          if (rm.reservoir && typeof rm.reservoir === 'object') {
+            const rv = rm.reservoir
+            ip = ip ?? rv.initial_pressure ?? rv.pressure ?? rv.initial_pressure_bar ?? null
+          }
+
+          // Normalize fractions
+          por  = normalizeFraction(por)
           wsat = normalizeFraction(wsat)
-
-          setDatasetParams({
-            initial_pressure: ip ?? null,
-            porosity: por ?? null,
-            permeability: perm ?? null,
-            water_saturation: wsat ?? null,
-          })
-          return
-        }
-
-        // If we reached here and no reservoir model params found, try to infer initial pressure
-        // from production data arrays (e.g., Pressure_psi or Pressure)
-        try {
-          const possiblePressureArrays = [
-            prod.Pressure_psi,
-            prod.Pressure,
-            prod.pressure_psi,
-            prod.pressure,
-          ]
-
-          let firstPressure: number | null = null
+        } else {
+          // Try to infer initial pressure from production data arrays
+          const possiblePressureArrays = [prod.Pressure_psi, prod.Pressure, prod.pressure_psi, prod.pressure]
           for (const arr of possiblePressureArrays) {
             if (Array.isArray(arr) && arr.length > 0) {
               const v = Number(arr[0])
-              if (!isNaN(v)) {
-                firstPressure = v
-                break
-              }
+              if (!isNaN(v)) { ip = v; break }
             }
           }
-
-          if (firstPressure !== null) {
-            setDatasetParams({
-              initial_pressure: firstPressure,
-              porosity: null,
-              permeability: null,
-              water_saturation: null,
-            })
-          }
-        } catch (e) {
-          // ignore
         }
+
+        const detectedParams = {
+          initial_pressure: ip ?? null,
+          porosity: por ?? null,
+          permeability: perm ?? null,
+          water_saturation: wsat ?? null,
+        }
+        setDatasetParams(detectedParams)
+        console.log('[DATASET] Detected params from dataset:', detectedParams, '| rm keys:', rm ? Object.keys(rm) : 'none')
+
+        // ── AUTO-APPLY: immediately update Quick Parameter fields ──
+        if (ip !== null) setInitialPressure(Number(ip))
+        if (por !== null) setPorosity(Number((por * 100).toFixed(2)))
+        if (perm !== null) setPermeability(Number(perm))
+        if (wsat !== null) setWaterSaturation(Number((wsat * 100).toFixed(2)))
+
       } catch (e) {
         console.warn('Failed to fetch dataset params', e)
         setDatasetParams(null)
@@ -275,6 +305,7 @@ const SimulatorPage: React.FC = () => {
 
     fetchDataset()
   }, [uploadedDatasetId, API_BASE, token])
+
 
   const handleManualDatasetSave = async (payload: { name: string; description?: string; production_data: Record<string, any> }) => {
     try {
@@ -557,134 +588,233 @@ const SimulatorPage: React.FC = () => {
     setExportSuccess('')
 
     try {
-      // Check if jspdf is available
       const jsPDF = (await import('jspdf')).jsPDF
-
       const doc = new jsPDF()
-      const pageWidth = doc.internal.pageSize.getWidth()
+      const pageWidth  = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
-      let yPosition = 20
+      const margin = 20
+      const colRight = 120  // x position for right-column values
+      let y = 20
 
-      // Title
-      doc.setFontSize(24)
-      doc.setTextColor(15, 76, 129)
-      doc.text('XCAPE Simulation Report', pageWidth / 2, yPosition, { align: 'center' })
-      yPosition += 15
+      // ── helpers ────────────────────────────────────────────────────────────
+      const checkPage = (needed = 14) => {
+        if (y + needed > pageHeight - 18) {
+          addFooter()
+          doc.addPage()
+          y = 22
+        }
+      }
 
-      // Export Date
-      doc.setFontSize(10)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`Generated: ${new Date().toLocaleString()}`, pageWidth / 2, yPosition, { align: 'center' })
-      yPosition += 10
+      const sectionTitle = (title: string) => {
+        checkPage(20)
+        y += 4
+        doc.setFillColor(15, 76, 129)
+        doc.rect(margin, y - 5, pageWidth - margin * 2, 9, 'F')
+        doc.setFontSize(11)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(255, 255, 255)
+        doc.text(title, margin + 3, y + 1)
+        doc.setTextColor(0, 0, 0)
+        y += 12
+      }
 
-      // Divider line
-      doc.setDrawColor(15, 76, 129)
-      doc.line(20, yPosition, pageWidth - 20, yPosition)
-      yPosition += 10
+      const row = (label: string, value: string, indent = 0) => {
+        checkPage(8)
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(60, 60, 60)
+        doc.text(label, margin + indent, y)
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(0, 0, 0)
+        doc.text(value, colRight, y)
+        y += 7
+      }
 
-      // Simulation Details Section
-      doc.setFontSize(14)
-      doc.setTextColor(15, 76, 129)
-      doc.text('Simulation Results', 20, yPosition)
-      yPosition += 10
+      const subTitle = (text: string) => {
+        checkPage(10)
+        doc.setFontSize(10)
+        doc.setFont('helvetica', 'bolditalic')
+        doc.setTextColor(15, 76, 129)
+        doc.text(text, margin, y)
+        doc.setTextColor(0, 0, 0)
+        y += 7
+      }
+
+      const note = (text: string) => {
+        checkPage(8)
+        doc.setFontSize(9)
+        doc.setFont('helvetica', 'italic')
+        doc.setTextColor(120, 120, 120)
+        const lines = doc.splitTextToSize(text, pageWidth - margin * 2)
+        doc.text(lines, margin, y)
+        y += lines.length * 5 + 2
+      }
+
+      const addFooter = () => {
+        doc.setFontSize(8)
+        doc.setTextColor(160, 160, 160)
+        doc.text(
+          'XCAPE — Automated Reservoir History Matching & Simulation System',
+          margin,
+          pageHeight - 10
+        )
+        doc.text(
+          `Generated: ${new Date().toLocaleString()}`,
+          pageWidth - margin,
+          pageHeight - 10,
+          { align: 'right' }
+        )
+      }
+
+      // ── COVER / HEADER ─────────────────────────────────────────────────────
+      doc.setFillColor(15, 76, 129)
+      doc.rect(0, 0, pageWidth, 38, 'F')
+
+      doc.setFontSize(22)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(255, 255, 255)
+      doc.text('XCAPE Simulation Report', pageWidth / 2, 17, { align: 'center' })
 
       doc.setFontSize(11)
+      doc.setFont('helvetica', 'normal')
+      doc.text(
+        `Simulation ID: ${simulationId}  |  Algorithm: ${results.matching_type === 'enkf' ? 'Ensemble Kalman Filter (EnKF)' : 'Baseline'}`,
+        pageWidth / 2, 28, { align: 'center' }
+      )
       doc.setTextColor(0, 0, 0)
+      y = 50
 
-      const detailsData = [
-        ['Simulation ID:', String(simulationId)],
-        ['Status:', results?.status || 'Completed'],
-        ['Algorithm:', results?.matching_type === 'enkf' ? 'Ensemble Kalman Filter (EnKF)' : 'Baseline'],
-        ['Match Quality:', `${Number(results?.match_quality || 0).toFixed(2)}%`],
-        ['Duration:', results?.duration_seconds ? `${Math.floor(results.duration_seconds / 60)}m ${results.duration_seconds % 60}s` : 'N/A'],
-        ['Dataset:', uploadedDatasetId ? `Dataset #${uploadedDatasetId}` : 'None'],
-      ]
+      // ── 1. SIMULATION RESULTS ──────────────────────────────────────────────
+      sectionTitle('1. Simulation Results')
+      row('Status:', results.status ? results.status.charAt(0).toUpperCase() + results.status.slice(1) : 'Completed')
+      row('Algorithm:', results.matching_type === 'enkf' ? 'Ensemble Kalman Filter (EnKF)' : 'Baseline Simulation')
+      row('Match Quality:', results.match_quality != null ? `${Number(results.match_quality).toFixed(2)}%` : 'N/A')
+      row('Duration:', results.duration_seconds != null && results.duration_seconds > 0
+        ? `${Math.floor(results.duration_seconds / 60)}m ${results.duration_seconds % 60}s`
+        : 'N/A')
+      row('Dataset ID:', uploadedDatasetId ? `#${uploadedDatasetId}` : 'None')
+      row('Report Date:', new Date().toLocaleString())
 
-      detailsData.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold')
-        doc.text(label, 30, yPosition)
-        doc.setFont('helvetica', 'normal')
-        doc.text(value, 90, yPosition)
-        yPosition += 8
-      })
+      // ── 2. RESERVOIR INPUT PARAMETERS ──────────────────────────────────────
+      sectionTitle('2. Reservoir Input Parameters')
+      row('Initial Pressure:', `${initialPressure} psi`)
+      row('Porosity:', `${porosity}%`)
+      row('Permeability:', `${permeability} mD`)
+      row('Water Saturation:', `${waterSaturation}%`)
 
-      yPosition += 5
+      // Extended params from results if available
+      const rd = results.results_data || {}
+      const ooip = rd.ooip || {}
+      if (ooip.inputs) {
+        const inp = ooip.inputs
+        if (inp.area_acres)     row('Drainage Area:', `${Number(inp.area_acres).toLocaleString()} acres`)
+        if (inp.thickness_ft)   row('Net Pay Thickness:', `${Number(inp.thickness_ft).toFixed(1)} ft`)
+        if (inp.porosity_frac)  row('Porosity (fraction):', Number(inp.porosity_frac).toFixed(4))
+        if (inp.water_sat_frac) row('Water Saturation (fraction):', Number(inp.water_sat_frac).toFixed(4))
+      }
 
-      // Parameters Section
-      doc.setFontSize(14)
-      doc.setTextColor(15, 76, 129)
-      doc.text('Reservoir Parameters', 20, yPosition)
-      yPosition += 10
+      // ── 3. OOIP ESTIMATION ─────────────────────────────────────────────────
+      sectionTitle('3. Original Oil In Place (OOIP) Estimation')
+      if (ooip.ooip_mmbbl) {
+        row('Initial OOIP:', `${Number(ooip.ooip_mmbbl).toFixed(3)} MMbbl  (${Number(ooip.ooip_stb).toLocaleString()} STB)`)
+        row('Remaining OOIP (after 365 d):', `${Number(ooip.remaining_ooip_mmbbl).toFixed(3)} MMbbl  (${Number(ooip.remaining_ooip_stb).toLocaleString()} STB)`)
+        row('Recovery Factor (365 d):', `${Number(ooip.recovery_factor_pct).toFixed(2)}%`)
+        row('Cum. Oil Production (365 d):', ooip.cum_oil_365d_stb ? `${Number(ooip.cum_oil_365d_stb).toLocaleString()} STB` : 'N/A')
+        row('Formation Volume Factor (Bo):', ooip.formation_volume_factor != null ? `${Number(ooip.formation_volume_factor).toFixed(4)} RB/STB` : 'N/A')
+        row('Bo Source:', ooip.bo_source === "Standing's correlation" ? "Standing's Correlation (auto)" : 'User Supplied')
 
-      doc.setFontSize(11)
-      doc.setTextColor(0, 0, 0)
+        y += 3
+        subTitle('OOIP Calculation Inputs:')
+        if (ooip.inputs) {
+          const i = ooip.inputs
+          if (i.area_acres)     row('  Drainage Area:', `${Number(i.area_acres).toLocaleString()} acres`, 4)
+          if (i.thickness_ft)   row('  Net Pay Thickness:', `${Number(i.thickness_ft).toFixed(1)} ft`, 4)
+          if (i.porosity_frac)  row('  Porosity:', `${(Number(i.porosity_frac) * 100).toFixed(2)}%`, 4)
+          if (i.water_sat_frac) row('  Water Saturation:', `${(Number(i.water_sat_frac) * 100).toFixed(2)}%`, 4)
+        }
+        note('Formula: OOIP (STB) = 7758 × Area (acres) × Thickness (ft) × Porosity × (1 − Sw) / Bo')
+      } else if (ooip.note) {
+        note(`⚠  ${ooip.note}`)
+        note('To enable OOIP estimation, provide: Drainage Area (acres), Net Pay Thickness (ft), and Porosity (%).')
+      } else {
+        note('OOIP data not available for this simulation run.')
+      }
 
-      const paramsData = [
-        ['Initial Pressure:', `${initialPressure} bar`],
-        ['Porosity:', `${porosity}%`],
-        ['Permeability:', `${permeability} mD`],
-        ['Water Saturation:', `${waterSaturation}%`],
-      ]
+      // ── 4. PREDICTED PRODUCTION VALUES ────────────────────────────────────
+      sectionTitle('4. Predicted Production Values')
+      row('Oil Predicted:', rd.oil_predicted != null ? `${Number(rd.oil_predicted).toLocaleString(undefined, {maximumFractionDigits: 0})} STB` : 'N/A')
+      row('Water Predicted:', rd.water_predicted != null ? `${Number(rd.water_predicted).toLocaleString(undefined, {maximumFractionDigits: 0})} STB` : 'N/A')
+      row('Gas Predicted:', rd.gas_predicted != null ? `${Number(rd.gas_predicted).toLocaleString(undefined, {maximumFractionDigits: 0})} Mscf` : 'N/A')
+      row('Reservoir Pressure Predicted:', rd.pressure_predicted != null ? `${Number(rd.pressure_predicted).toFixed(1)} psi` : 'N/A')
 
-      paramsData.forEach(([label, value]) => {
-        doc.setFont('helvetica', 'bold')
-        doc.text(label, 30, yPosition)
-        doc.setFont('helvetica', 'normal')
-        doc.text(value, 90, yPosition)
-        yPosition += 8
-      })
-
-      // Add new page for forecasts summary
-      doc.addPage()
-      yPosition = 20
-
-      doc.setFontSize(14)
-      doc.setTextColor(15, 76, 129)
-      doc.text('Forecast Summary', 20, yPosition)
-      yPosition += 15
-
+      // ── 5. PRIOR FORECAST SUMMARY ─────────────────────────────────────────
       if (priorForecast) {
-        doc.setFontSize(12)
-        doc.text('Prior Forecast (Initial Prediction)', 20, yPosition)
-        yPosition += 8
-        doc.setFontSize(10)
-        const priorUncertainty = priorForecast.uncertainty || {}
-        doc.text(`Oil Std Dev: ${(priorUncertainty.oil_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 5
-        doc.text(`Water Std Dev: ${(priorUncertainty.water_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 5
-        doc.text(`Gas Std Dev: ${(priorUncertainty.gas_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 10
+        sectionTitle('5. Prior Forecast Summary (Before Calibration)')
+        const pPred = priorForecast.predictions || {}
+        const pUnc  = priorForecast.uncertainty || {}
+
+        for (const metric of ['oil', 'water', 'gas', 'pressure'] as const) {
+          const pred = pPred[metric] || {}
+          const mean  = Array.isArray(pred.mean)  ? pred.mean  : []
+          const upper = Array.isArray(pred.upper) ? pred.upper : []
+          const lower = Array.isArray(pred.lower) ? pred.lower : []
+          const unit  = metric === 'pressure' ? 'psi' : metric === 'gas' ? 'Mscf/d' : 'STB/d'
+
+          subTitle(`${metric.toUpperCase()} (${unit})`)
+          row(`  Initial Mean:`,  mean.length  ? `${Number(mean[0]).toFixed(2)}` : 'N/A', 4)
+          row(`  Final Mean:`,    mean.length  ? `${Number(mean[mean.length-1]).toFixed(2)}` : 'N/A', 4)
+          row(`  Peak Upper:`,    upper.length ? `${Math.max(...upper.map(Number)).toFixed(2)}` : 'N/A', 4)
+          row(`  Peak Lower:`,    lower.length ? `${Math.min(...lower.map(Number)).toFixed(2)}` : 'N/A', 4)
+          const stdKey = `${metric}_std_mean` as keyof typeof pUnc
+          if (pUnc[stdKey] != null) row(`  Std Dev (mean):`, `${Number(pUnc[stdKey]).toFixed(4)}`, 4)
+          y += 2
+        }
       }
 
+      // ── 6. POSTERIOR FORECAST SUMMARY ─────────────────────────────────────
       if (posteriorForecast) {
-        doc.setFontSize(12)
-        doc.text('Posterior Forecast (After Calibration)', 20, yPosition)
-        yPosition += 8
-        doc.setFontSize(10)
-        const posteriorUncertainty = posteriorForecast.uncertainty || {}
-        doc.text(`Oil Std Dev: ${(posteriorUncertainty.oil_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 5
-        doc.text(`Water Std Dev: ${(posteriorUncertainty.water_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 5
-        doc.text(`Gas Std Dev: ${(posteriorUncertainty.gas_std_mean || 0).toFixed(2)}`, 30, yPosition)
-        yPosition += 10
+        sectionTitle('6. Posterior Forecast Summary (After Calibration)')
+        const ppPred = posteriorForecast.predictions || {}
+        const ppUnc  = posteriorForecast.uncertainty || {}
+
+        for (const metric of ['oil', 'water', 'gas', 'pressure'] as const) {
+          const pred  = ppPred[metric] || {}
+          const mean  = Array.isArray(pred.mean)  ? pred.mean  : []
+          const upper = Array.isArray(pred.upper) ? pred.upper : []
+          const lower = Array.isArray(pred.lower) ? pred.lower : []
+          const unit  = metric === 'pressure' ? 'psi' : metric === 'gas' ? 'Mscf/d' : 'STB/d'
+
+          subTitle(`${metric.toUpperCase()} (${unit})`)
+          row(`  Initial Mean:`,  mean.length  ? `${Number(mean[0]).toFixed(2)}` : 'N/A', 4)
+          row(`  Final Mean:`,    mean.length  ? `${Number(mean[mean.length-1]).toFixed(2)}` : 'N/A', 4)
+          row(`  Peak Upper:`,    upper.length ? `${Math.max(...upper.map(Number)).toFixed(2)}` : 'N/A', 4)
+          row(`  Peak Lower:`,    lower.length ? `${Math.min(...lower.map(Number)).toFixed(2)}` : 'N/A', 4)
+          const stdKey = `${metric}_std_mean` as keyof typeof ppUnc
+          if (ppUnc[stdKey] != null) row(`  Std Dev (mean):`, `${Number(ppUnc[stdKey]).toFixed(4)}`, 4)
+          y += 2
+        }
       }
 
-      // Footer
-      doc.setFontSize(8)
-      doc.setTextColor(150, 150, 150)
-      doc.text('This report was generated by XCAPE - Automated Reservoir History Matching System', 20, pageHeight - 10)
+      // ── 7. DATA SOURCE ─────────────────────────────────────────────────────
+      sectionTitle('7. Data Source & Methodology')
+      row('Data Source:', rd.data_source || 'Uploaded Dataset')
+      note(
+        'History matching was performed using the Ensemble Kalman Filter (EnKF) algorithm. ' +
+        'The EnKF updates reservoir model parameters by assimilating observed production data. ' +
+        'OOIP is computed using the volumetric method: OOIP = 7758 × A × h × φ × (1−Sw) / Bo. ' +
+        'Forecasts show predicted production rates with uncertainty bounds over the simulation period.'
+      )
 
-      // Save PDF
+      // final footer
+      addFooter()
+
+      // Save
       doc.save(`simulation_${simulationId}_report.pdf`)
       setExportSuccess('✓ PDF report generated and downloaded successfully!')
       setTimeout(() => setExportSuccess(''), 4000)
     } catch (err) {
-      // If jsPDF not available, provide fallback message
       if ((err as any)?.message?.includes('Cannot find module')) {
-        setExportError('PDF export requires additional libraries. Using JSON export instead.')
-        // Fall back to JSON export
+        setExportError('PDF export requires jspdf. Falling back to JSON export.')
         downloadResults()
       } else {
         const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -696,6 +826,7 @@ const SimulatorPage: React.FC = () => {
       setExportLoading(false)
     }
   }
+
 
   return (
     <>
@@ -906,30 +1037,42 @@ const SimulatorPage: React.FC = () => {
                   }}
                 >
                   <CardContent>
-                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0F4C81' }}>
-                      Quick Parameters
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: '#0F4C81' }}>
+                        Quick Parameters
+                      </Typography>
+                      {datasetParams && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            display: 'inline-flex', alignItems: 'center', gap: 0.5,
+                            backgroundColor: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.4)',
+                            borderRadius: '999px', px: 1.5, py: 0.5,
+                          }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803d' }}>
+                              ✓ From Dataset — fields locked
+                            </Typography>
+                          </Box>
+                          <Button size="small" variant="text"
+                            onClick={() => { setDatasetParams(null) }}
+                            sx={{ fontSize: '0.7rem', color: '#888', textTransform: 'none', minWidth: 0 }}>
+                            Clear
+                          </Button>
+                        </Box>
+                      )}
+                    </Box>
                     <Grid container spacing={2}>
                       <Grid item xs={12} sm={6} md={3}>
                         <TextField
                           fullWidth
-                          label="Initial Pressure (bar)"
+                          label="Initial Pressure (psi)"
                           placeholder="Enter pressure"
                           type="number"
                           value={initialPressure}
                           onChange={(e) => setInitialPressure(Number(e.target.value))}
                           variant="outlined"
-                          inputProps={{
-                            style: {
-                              color: 'inherit',
-                            },
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-input::placeholder': {
-                              color: 'rgba(189, 189, 189, 0.7)',
-                              opacity: 1,
-                            },
-                          }}
+                          disabled={!!datasetParams?.initial_pressure}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
@@ -941,17 +1084,9 @@ const SimulatorPage: React.FC = () => {
                           value={porosity}
                           onChange={(e) => setPorosity(Number(e.target.value))}
                           variant="outlined"
-                          inputProps={{
-                            style: {
-                              color: 'inherit',
-                            },
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-input::placeholder': {
-                              color: 'rgba(189, 189, 189, 0.7)',
-                              opacity: 1,
-                            },
-                          }}
+                          disabled={!!datasetParams?.porosity}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
@@ -963,17 +1098,9 @@ const SimulatorPage: React.FC = () => {
                           value={permeability}
                           onChange={(e) => setPermeability(Number(e.target.value))}
                           variant="outlined"
-                          inputProps={{
-                            style: {
-                              color: 'inherit',
-                            },
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-input::placeholder': {
-                              color: 'rgba(189, 189, 189, 0.7)',
-                              opacity: 1,
-                            },
-                          }}
+                          disabled={!!datasetParams?.permeability}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6} md={3}>
@@ -985,20 +1112,13 @@ const SimulatorPage: React.FC = () => {
                           value={waterSaturation}
                           onChange={(e) => setWaterSaturation(Number(e.target.value))}
                           variant="outlined"
-                          inputProps={{
-                            style: {
-                              color: 'inherit',
-                            },
-                          }}
-                          sx={{
-                            '& .MuiOutlinedInput-input::placeholder': {
-                              color: 'rgba(189, 189, 189, 0.7)',
-                              opacity: 1,
-                            },
-                          }}
+                          disabled={!!datasetParams?.water_saturation}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
                       </Grid>
                     </Grid>
+
                     {datasetParams && (
                       <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Box>
@@ -1320,14 +1440,13 @@ const SimulatorPage: React.FC = () => {
                 <Grid item xs={12}>
                   <Card
                     sx={{
-                      backgroundColor: '#F7F9FC',
-                      '@media (prefers-color-scheme: dark)': {
-                        backgroundColor: '#1a2332',
-                      },
+                      backgroundColor: theme.palette.mode === 'dark' ? '#1e293b' : '#F7F9FC',
+                      border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
+                      borderRadius: '12px',
                     }}
                   >
                     <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: '#0F4C81' }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81' }}>
                         Results & Visualization
                       </Typography>
                       <Alert severity="info" sx={{ mb: 3 }}>
@@ -1342,32 +1461,34 @@ const SimulatorPage: React.FC = () => {
                 {/* Simulation Stats */}
                 <Grid item xs={12}>
                   <Card sx={{
-                    background: 'linear-gradient(135deg, #F0F7FF 0%, #E8F1FA 100%)',
-                    boxShadow: '0 8px 24px rgba(15, 76, 129, 0.12)',
-                    border: '1px solid rgba(15, 76, 129, 0.15)',
+                    background: theme.palette.mode === 'dark'
+                      ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+                      : 'linear-gradient(135deg, #F0F7FF 0%, #E8F1FA 100%)',
+                    boxShadow: theme.palette.mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(15, 76, 129, 0.12)',
+                    border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15, 76, 129, 0.15)'}`,
                     borderRadius: '12px',
                   }}>
                     <CardContent>
-                      <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: '#0F4C81', display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 800, mb: 3, color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81', display: 'flex', alignItems: 'center', gap: 1 }}>
                         🔍 Simulation Results
                       </Typography>
                       <Grid container spacing={3}>
                         <Grid item xs={12} sm={6} md={3}>
                           <Box sx={{
                             p: 2,
-                            backgroundColor: 'rgba(15, 76, 129, 0.08)',
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(15, 76, 129, 0.08)',
                             borderRadius: '8px',
-                            border: '1px solid rgba(15, 76, 129, 0.2)',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 76, 129, 0.2)'}`,
                             transition: 'all 0.3s ease',
                             '&:hover': {
-                              backgroundColor: 'rgba(15, 76, 129, 0.12)',
+                              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.12)' : 'rgba(15, 76, 129, 0.12)',
                               boxShadow: '0 4px 12px rgba(15, 76, 129, 0.15)'
                             }
                           }}>
-                            <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mb: 0.5 }}>
                               Status
                             </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 700, color: '#0F4C81', fontSize: '18px' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81', fontSize: '18px' }}>
                               ✓ {results.status || 'Complete'}
                             </Typography>
                           </Box>
@@ -1384,10 +1505,10 @@ const SimulatorPage: React.FC = () => {
                               boxShadow: '0 4px 12px rgba(40, 167, 69, 0.15)'
                             }
                           }}>
-                            <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mb: 0.5 }}>
                               Match Quality
                             </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 700, color: '#28a745', fontSize: '18px' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#4ade80' : '#28a745', fontSize: '18px' }}>
                               {results.match_quality !== undefined && results.match_quality !== null ? `${Number(results.match_quality).toFixed(2)}%` : 'N/A'}
                             </Typography>
                           </Box>
@@ -1404,10 +1525,10 @@ const SimulatorPage: React.FC = () => {
                               boxShadow: '0 4px 12px rgba(255, 152, 0, 0.15)'
                             }
                           }}>
-                            <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mb: 0.5 }}>
                               Duration
                             </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 700, color: '#FF9800', fontSize: '18px' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#ffb74d' : '#FF9800', fontSize: '18px' }}>
                               {results.duration_seconds !== undefined && results.duration_seconds !== null && results.duration_seconds > 0
                                 ? `${Math.floor(results.duration_seconds / 60)}m ${results.duration_seconds % 60}s`
                                 : 'N/A'}
@@ -1417,19 +1538,19 @@ const SimulatorPage: React.FC = () => {
                         <Grid item xs={12} sm={6} md={3}>
                           <Box sx={{
                             p: 2,
-                            backgroundColor: 'rgba(76, 175, 80, 0.08)',
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(129, 199, 132, 0.08)' : 'rgba(76, 175, 80, 0.08)',
                             borderRadius: '8px',
-                            border: '1px solid rgba(76, 175, 80, 0.2)',
+                            border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(129, 199, 132, 0.2)' : 'rgba(76, 175, 80, 0.2)'}`,
                             transition: 'all 0.3s ease',
                             '&:hover': {
-                              backgroundColor: 'rgba(76, 175, 80, 0.12)',
+                              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(129, 199, 132, 0.12)' : 'rgba(76, 175, 80, 0.12)',
                               boxShadow: '0 4px 12px rgba(76, 175, 80, 0.15)'
                             }
                           }}>
-                            <Typography variant="body2" sx={{ color: '#666', fontWeight: 500, mb: 1 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 500, mb: 0.5 }}>
                               Algorithm
                             </Typography>
-                            <Typography variant="body1" sx={{ fontWeight: 700, color: '#4CAF50', fontSize: '18px' }}>
+                            <Typography variant="body1" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#81c784' : '#4CAF50', fontSize: '18px' }}>
                               {results.matching_type === 'enkf' ? 'EnKF' : 'Baseline'}
                             </Typography>
                           </Box>
@@ -1439,19 +1560,120 @@ const SimulatorPage: React.FC = () => {
                   </Card>
                 </Grid>
 
+                {/* OOIP Card */}
+                {results?.results_data?.ooip && (
+                  <Grid item xs={12}>
+                    {results.results_data.ooip.ooip_mmbbl ? (
+                      <Card sx={{
+                        background: theme.palette.mode === 'dark'
+                          ? 'linear-gradient(135deg, #0f2516 0%, #06150a 100%)'
+                          : 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)',
+                        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(46,125,50,0.2)'}`,
+                        borderRadius: '12px',
+                        boxShadow: theme.palette.mode === 'dark' ? '0 6px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(46,125,50,0.1)',
+                      }}>
+                        <CardContent>
+                          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, color: theme.palette.mode === 'dark' ? '#81c784' : '#2E7D32', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            🛢️ Original Oil In Place (OOIP) Estimation
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={3}>
+                              <Box sx={{
+                                p: 2,
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(129, 199, 132, 0.08)' : 'rgba(46,125,50,0.08)',
+                                borderRadius: '8px',
+                                border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(129, 199, 132, 0.15)' : 'rgba(46,125,50,0.2)'}`,
+                              }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Initial OOIP</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#81c784' : '#2E7D32' }}>
+                                  {Number(results.results_data.ooip.ooip_mmbbl).toFixed(2)} MMbbl
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                                  {Number(results.results_data.ooip.ooip_stb).toLocaleString()} STB
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                              <Box sx={{
+                                p: 2,
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 183, 77, 0.08)' : 'rgba(255,152,0,0.08)',
+                                borderRadius: '8px',
+                                border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 183, 77, 0.15)' : 'rgba(255,152,0,0.2)'}`,
+                              }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Remaining after 365d</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#ffb74d' : '#E65100' }}>
+                                  {Number(results.results_data.ooip.remaining_ooip_mmbbl).toFixed(2)} MMbbl
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                                  {Number(results.results_data.ooip.remaining_ooip_stb).toLocaleString()} STB
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                              <Box sx={{
+                                p: 2,
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(100, 181, 246, 0.08)' : 'rgba(15,76,129,0.08)',
+                                borderRadius: '8px',
+                                border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(100, 181, 246, 0.15)' : 'rgba(15,76,129,0.2)'}`,
+                              }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Recovery Factor</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#64b5f6' : '#0F4C81' }}>
+                                  {Number(results.results_data.ooip.recovery_factor_pct).toFixed(1)}%
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                                  over 365 days
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                              <Box sx={{
+                                p: 2,
+                                backgroundColor: theme.palette.mode === 'dark' ? 'rgba(186, 104, 200, 0.08)' : 'rgba(103,58,183,0.08)',
+                                borderRadius: '8px',
+                                border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(186, 104, 200, 0.15)' : 'rgba(103,58,183,0.2)'}`,
+                              }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Bo (FVF)</Typography>
+                                <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#ba68c8' : '#673AB7' }}>
+                                  {Number(results.results_data.ooip.formation_volume_factor).toFixed(3)} RB/STB
+                                </Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
+                                  {results.results_data.ooip.bo_source === "Standing's correlation"
+                                    ? "📐 Standing's correlation"
+                                    : '✏️ User supplied'}
+                                </Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </CardContent>
+                      </Card>
+                    ) : results.results_data.ooip.note ? (
+                      <Alert severity="info" sx={{ borderRadius: '8px' }}>
+                        <strong>OOIP not computed:</strong> {results.results_data.ooip.note}
+                        <br />
+                        <Typography variant="caption">
+                          Provide <strong>Drainage Area (acres)</strong>, <strong>Net Pay Thickness (ft)</strong>, and <strong>Porosity (%)</strong> in the reservoir properties form to enable OOIP estimation.
+                        </Typography>
+                      </Alert>
+                    ) : null}
+                  </Grid>
+                )}
+
                 {/* Charts */}
+
                 {(priorForecast || posteriorForecast) && (
                   <Grid item xs={12}>
                     <Card
                       sx={{
-                        background: 'linear-gradient(135deg, #F7F9FC 0%, #E8F1F8 100%)',
-                        boxShadow: '0 8px 24px rgba(15, 76, 129, 0.12)',
-                        border: '1px solid rgba(15, 76, 129, 0.1)',
+                        background: theme.palette.mode === 'dark'
+                          ? 'linear-gradient(135deg, #1e293b 0%, #0f172a 100%)'
+                          : 'linear-gradient(135deg, #F7F9FC 0%, #E8F1F8 100%)',
+                        boxShadow: theme.palette.mode === 'dark' ? '0 8px 24px rgba(0,0,0,0.3)' : '0 8px 24px rgba(15, 76, 129, 0.12)',
+                        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(15, 76, 129, 0.1)'}`,
                         borderRadius: '12px',
                       }}
                     >
                       <CardContent sx={{ p: 3 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, color: '#0F4C81', display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 3, color: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81', display: 'flex', alignItems: 'center', gap: 1 }}>
                           📊 Production Forecast Analysis
                         </Typography>
 
@@ -1462,9 +1684,9 @@ const SimulatorPage: React.FC = () => {
                           gap: 1, 
                           flexWrap: 'wrap',
                           p: 2,
-                          backgroundColor: 'rgba(255, 255, 255, 0.6)',
+                          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(30, 41, 59, 0.5)' : 'rgba(255, 255, 255, 0.6)',
                           borderRadius: '8px',
-                          border: '1px solid rgba(15, 76, 129, 0.1)'
+                          border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 76, 129, 0.1)'}`
                         }}>
                           {['oil', 'water', 'gas', 'pressure'].map((metric) => (
                             <Button
@@ -1472,15 +1694,21 @@ const SimulatorPage: React.FC = () => {
                               variant={chartMetric === metric ? 'contained' : 'outlined'}
                               onClick={() => setChartMetric(metric)}
                               sx={{
-                                backgroundColor: chartMetric === metric ? 'linear-gradient(135deg, #0F4C81 0%, #0D3A5C 100%)' : 'transparent',
-                                color: chartMetric === metric ? 'white' : '#0F4C81',
-                                borderColor: '#0F4C81',
+                                backgroundColor: chartMetric === metric 
+                                  ? (theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81')
+                                  : 'transparent',
+                                color: chartMetric === metric 
+                                  ? (theme.palette.mode === 'dark' ? '#0f172a' : 'white')
+                                  : (theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81'),
+                                borderColor: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81',
                                 fontWeight: 600,
                                 textTransform: 'capitalize',
                                 transition: 'all 0.3s ease',
                                 '&:hover': {
-                                  backgroundColor: chartMetric === metric ? 'linear-gradient(135deg, #0D3A5C 0%, #0A2A42 100%)' : 'rgba(15, 76, 129, 0.05)',
-                                  borderColor: '#0D3A5C',
+                                  backgroundColor: chartMetric === metric 
+                                    ? (theme.palette.mode === 'dark' ? '#7dd3fc' : '#0d3a5c')
+                                    : (theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.08)' : 'rgba(15, 76, 129, 0.05)'),
+                                  borderColor: theme.palette.mode === 'dark' ? '#7dd3fc' : '#0D3A5C',
                                 }
                               }}
                             >
@@ -1577,7 +1805,13 @@ const SimulatorPage: React.FC = () => {
                       onClick={downloadResults}
                       disabled={exportLoading}
                       sx={{ 
-                        backgroundColor: '#0F4C81',
+                        backgroundColor: theme.palette.mode === 'dark' ? '#38bdf8' : '#0F4C81',
+                        color: theme.palette.mode === 'dark' ? '#0f172a' : '#fff',
+                        fontWeight: 700,
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: theme.palette.mode === 'dark' ? '#7dd3fc' : '#0d3a5c',
+                        },
                         '&:disabled': { opacity: 0.6 }
                       }}
                     >
@@ -1589,11 +1823,13 @@ const SimulatorPage: React.FC = () => {
                       onClick={generatePDFReport}
                       disabled={exportLoading}
                       sx={{
-                        color: '#28a745',
-                        borderColor: '#28a745',
+                        color: theme.palette.mode === 'dark' ? '#4ade80' : '#28a745',
+                        borderColor: theme.palette.mode === 'dark' ? '#4ade80' : '#28a745',
+                        fontWeight: 700,
+                        transition: 'all 0.3s ease',
                         '&:hover': {
-                          backgroundColor: 'rgba(40, 167, 69, 0.05)',
-                          borderColor: '#20c04a',
+                          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(74, 222, 128, 0.08)' : 'rgba(40, 167, 69, 0.05)',
+                          borderColor: theme.palette.mode === 'dark' ? '#86efac' : '#20c04a',
                         },
                         '&:disabled': { opacity: 0.6 }
                       }}
