@@ -189,6 +189,21 @@ const SimulatorPage: React.FC = () => {
 
   const activeAlg = availableAlgorithms.find(a => a.slug === selectedAlgorithm) || availableAlgorithms[0]
 
+  const getAlgorithmDisplayName = (type?: string, full: boolean = false) => {
+    if (!type) return 'Unknown'
+    const t = type.toLowerCase()
+    if (t === 'baseline') return full ? 'Baseline Simulation' : 'Baseline'
+    if (t === 'esmda') return full ? 'Ensemble Smoother with Multiple Data Assimilation (ES-MDA)' : 'ES-MDA'
+    if (t === 'enkf') return full ? 'Ensemble Kalman Filter (EnKF)' : 'EnKF'
+    if (t === 'es') return full ? 'Standard Ensemble Smoother (ES)' : 'Ensemble Smoother'
+
+    const found = availableAlgorithms.find(a => a.slug.toLowerCase() === t)
+    if (found) {
+      return full ? found.name : found.slug.toUpperCase()
+    }
+    return full ? `${type.toUpperCase()} Algorithm` : type.toUpperCase()
+  }
+
   useEffect(() => {
     const fetchAlgorithms = async () => {
       try {
@@ -1040,7 +1055,7 @@ const SimulatorPage: React.FC = () => {
       doc.setFontSize(11)
       doc.setFont('helvetica', 'normal')
       doc.text(
-        `Simulation ID: ${simulationId}  |  Algorithm: ${results.matching_type === 'enkf' ? 'Ensemble Kalman Filter (EnKF)' : 'Baseline'}`,
+        `Simulation ID: ${simulationId}  |  Algorithm: ${getAlgorithmDisplayName(results.matching_type, true)}`,
         pageWidth / 2, 28, { align: 'center' }
       )
       doc.setTextColor(0, 0, 0)
@@ -1049,7 +1064,7 @@ const SimulatorPage: React.FC = () => {
       // ── 1. SIMULATION RESULTS ──────────────────────────────────────────────
       sectionTitle('1. Simulation Results')
       row('Status:', results.status ? results.status.charAt(0).toUpperCase() + results.status.slice(1) : 'Completed')
-      row('Algorithm:', results.matching_type === 'enkf' ? 'Ensemble Kalman Filter (EnKF)' : 'Baseline Simulation')
+      row('Algorithm:', getAlgorithmDisplayName(results.matching_type, true))
       row('Match Quality:', results.match_quality != null ? `${Number(results.match_quality).toFixed(2)}%` : 'N/A')
       row('Duration:', results.duration_seconds != null && results.duration_seconds > 0
         ? `${Math.floor(results.duration_seconds / 60)}m ${results.duration_seconds % 60}s`
@@ -1161,8 +1176,8 @@ const SimulatorPage: React.FC = () => {
       sectionTitle('7. Data Source & Methodology')
       row('Data Source:', rd.data_source || 'Uploaded Dataset')
       note(
-        'History matching was performed using the Ensemble Kalman Filter (EnKF) algorithm. ' +
-        'The EnKF updates reservoir model parameters by assimilating observed production data. ' +
+        `History matching was performed using the ${getAlgorithmDisplayName(results.matching_type, true)} algorithm. ` +
+        'The algorithm updates reservoir model parameters by assimilating observed production data. ' +
         'OOIP is computed using the volumetric method: OOIP = 7758 × A × h × φ × (1−Sw) / Bo. ' +
         'Forecasts show predicted production rates with uncertainty bounds over the simulation period.'
       )
@@ -2446,7 +2461,7 @@ const SimulatorPage: React.FC = () => {
                               Algorithm
                             </Typography>
                             <Typography variant="body1" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#81c784' : '#4CAF50', fontSize: '18px' }}>
-                              {results.matching_type === 'enkf' ? 'EnKF' : 'Baseline'}
+                              {getAlgorithmDisplayName(results.matching_type)}
                             </Typography>
                           </Box>
                         </Grid>
