@@ -212,8 +212,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       if (response.status === 401) {
-        console.warn('[AUTH] Token expired or invalid during refresh. Signing out.');
-        handleSessionExpired();
+        console.warn('[AUTH] Token expired or invalid during refresh.');
       }
       return false;
     } catch (err) {
@@ -258,16 +257,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return response;
   };
 
-  useEffect(() => {
-    const handleFocus = () => {
-      const activeToken = localStorage.getItem('authToken');
-      if (activeToken) {
-        refreshToken();
-      }
-    };
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+
 
   const clearError = () => setError(null);
 

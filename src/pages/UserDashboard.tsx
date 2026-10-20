@@ -166,7 +166,6 @@ const UserDashboard: React.FC = () => {
       const response = await fetch(queryUrl, {
         headers: {
           'Authorization': `Token ${token}`,
-          ...(activeId ? { 'X-Workspace-Id': String(activeId) } : {}),
         },
       });
 
