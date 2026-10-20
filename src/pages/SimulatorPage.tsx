@@ -46,6 +46,7 @@ import { DataInputModal } from '@components/DataInputModal'
 import { AttachReservoirModal } from '@components/AttachReservoirModal'
 import { InterpretButton } from '@components/InterpretButton'
 import { InterpretationDrawer } from '@components/InterpretationDrawer'
+import MathFormula from '../components/MathFormula'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -77,6 +78,7 @@ const SimulatorPage: React.FC = () => {
   // Multi-Algorithm Definition & Dynamic State
   interface AlgorithmDefinition {
     id: number
+    isFallback?: boolean
     name: string
     slug: string
     category: string
@@ -103,7 +105,8 @@ const SimulatorPage: React.FC = () => {
 
   const [availableAlgorithms, setAvailableAlgorithms] = useState<AlgorithmDefinition[]>([
     {
-      id: 1,
+      id: 0,
+      isFallback: true,
       name: 'Ensemble Smoother with Multiple Data Assimilation (ES-MDA)',
       slug: 'esmda',
       category: 'smoother',
@@ -117,7 +120,8 @@ const SimulatorPage: React.FC = () => {
       is_default: true,
     },
     {
-      id: 2,
+      id: 0,
+      isFallback: true,
       name: 'Ensemble Kalman Filter (EnKF)',
       slug: 'enkf',
       category: 'filter',
@@ -131,7 +135,8 @@ const SimulatorPage: React.FC = () => {
       is_default: false,
     },
     {
-      id: 3,
+      id: 0,
+      isFallback: true,
       name: 'Single-Step Ensemble Smoother (ES)',
       slug: 'es',
       category: 'smoother',
@@ -1689,9 +1694,7 @@ const SimulatorPage: React.FC = () => {
                         <Typography variant="caption" sx={{ fontWeight: 700, color: '#38BDF8', display: 'block', mb: 0.5 }}>
                           MATHEMATICAL FORMULATION
                         </Typography>
-                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.82rem', color: theme.palette.mode === 'dark' ? '#93C5FD' : '#1E40AF', whiteSpace: 'pre-wrap', mb: 1.5, p: 1, backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#EFF6FF', borderRadius: 1, lineHeight: 1.4 }}>
-                          {activeAlg.equation_latex || 'Kalman update: m = m + K (d_obs - d_sim)'}
-                        </Typography>
+                        <MathFormula math={activeAlg.equation_latex || '\\mathbf{m}^{a} = \\mathbf{m}^{f} + \\mathbf{K}(\\mathbf{d}_{obs} - \\mathbf{d}^{f})'} />
                         <Typography variant="body2" sx={{ fontSize: '0.83rem', color: 'text.secondary', lineHeight: 1.5 }}>
                           {activeAlg.description}
                         </Typography>
@@ -2093,7 +2096,8 @@ const SimulatorPage: React.FC = () => {
                                 name: `${activeAlgObj?.name || 'Calibration'} Run - ${new Date().toISOString()}`,
                                 description: `${activeAlgObj?.name || selectedAlgorithm} with dynamic parameter configuration`,
                                 matching_type: selectedAlgorithm,
-                                ...(activeAlgObj?.id ? { algorithm_definition: activeAlgObj.id } : {}),
+                                ...(activeAlgObj?.id && activeAlgObj.id > 0 && !activeAlgObj.isFallback ? { algorithm_definition: activeAlgObj.id } : {}),
+                                ...(localStorage.getItem('xcape_active_workspace_id') ? { workspace_id: Number(localStorage.getItem('xcape_active_workspace_id')) } : {}),
                                 algorithm_config: algorithmConfig,
                                 initial_pressure: initialPressure !== '' ? Number(initialPressure) : (datasetParams?.initial_pressure ?? 3000),
                                 porosity: porosity !== '' ? Number(porosity) : (datasetParams?.porosity ?? 20),

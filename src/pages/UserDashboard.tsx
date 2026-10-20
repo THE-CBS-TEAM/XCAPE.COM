@@ -153,14 +153,20 @@ const UserDashboard: React.FC = () => {
     }
   }, [user]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (targetWsId?: number) => {
     try {
       setLoading(true);
       setError('');
 
-      const response = await fetch(`${API_BASE_URL}/dashboard/summary/`, {
+      const wsParam = searchParams.get('workspace_id');
+      const storedWs = localStorage.getItem('xcape_active_workspace_id');
+      const activeId = targetWsId ?? selectedWorkspaceId ?? (wsParam ? Number(wsParam) : (storedWs ? Number(storedWs) : undefined));
+
+      const queryUrl = activeId ? `${API_BASE_URL}/dashboard/summary/?workspace_id=${activeId}` : `${API_BASE_URL}/dashboard/summary/`;
+      const response = await fetch(queryUrl, {
         headers: {
           'Authorization': `Token ${token}`,
+          ...(activeId ? { 'X-Workspace-Id': String(activeId) } : {}),
         },
       });
 
@@ -170,11 +176,17 @@ const UserDashboard: React.FC = () => {
 
       const data = await response.json();
       setDashboardData(data);
+      if (data.active_workspace) {
+        setSelectedWorkspaceId(data.active_workspace.id);
+        localStorage.setItem('xcape_active_workspace_id', String(data.active_workspace.id));
+      }
       if (data.workspaces) {
         const wsList = parseWorkspaceList(data.workspaces);
         setWorkspaces(wsList);
-        if (wsList.length > 0) {
-          setSelectedWorkspaceId((prev) => prev ?? wsList[0].id);
+        if (!data.active_workspace && wsList.length > 0) {
+          const chosen = (activeId && wsList.find(w => w.id === activeId)) ? activeId : wsList[0].id;
+          setSelectedWorkspaceId(chosen);
+          localStorage.setItem('xcape_active_workspace_id', String(chosen));
         }
       }
     } catch (err) {
@@ -182,6 +194,12 @@ const UserDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleWorkspaceChange = (newWsId: number) => {
+    setSelectedWorkspaceId(newWsId);
+    localStorage.setItem('xcape_active_workspace_id', String(newWsId));
+    fetchDashboardData(newWsId);
   };
 
   const fetchWorkspaces = async () => {
@@ -423,13 +441,35 @@ const UserDashboard: React.FC = () => {
                       <Chip label={dashboardData.user.department} size="small" variant="outlined" />
                     )}
                     {activeWorkspace && (
-                      <Chip
-                        icon={<GroupIcon />}
-                        label={`Workspace: ${activeWorkspace.name} (${activeWorkspace.current_user_role?.toUpperCase() || 'MEMBER'})`}
-                        size="small"
-                        color="primary"
-                        variant="filled"
-                      />
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Chip
+                          icon={<GroupIcon />}
+                          label={`Workspace: ${activeWorkspace.name} (${activeWorkspace.current_user_role?.toUpperCase() || 'MEMBER'})`}
+                          size="small"
+                          color="primary"
+                          variant="filled"
+                        />
+                        {workspaceList.length > 1 && (
+                          <Select
+                            size="small"
+                            value={activeWorkspace.id}
+                            onChange={(e) => handleWorkspaceChange(Number(e.target.value))}
+                            sx={{
+                              height: 28,
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              borderRadius: 2,
+                              bgcolor: theme.palette.mode === 'dark' ? '#1E293B' : '#F1F5F9',
+                            }}
+                          >
+                            {workspaceList.map((ws) => (
+                              <MenuItem key={ws.id} value={ws.id} sx={{ fontSize: '0.8rem' }}>
+                                Switch to: {ws.name} ({ws.current_user_role?.toUpperCase() || 'MEMBER'})
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        )}
+                      </Stack>
                     )}
                   </Stack>
                 </Grid>
@@ -688,7 +728,7 @@ const UserDashboard: React.FC = () => {
                         <FormControl fullWidth size="small" sx={{ mt: 1 }}>
                           <Select
                             value={activeWorkspace ? activeWorkspace.id : ''}
-                            onChange={(e) => setSelectedWorkspaceId(Number(e.target.value))}
+                            onChange={(e) => handleWorkspaceChange(Number(e.target.value))}
                             sx={{ fontWeight: 700 }}
                           >
                             {workspaceList.map((ws) => (

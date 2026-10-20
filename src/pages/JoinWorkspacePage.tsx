@@ -125,7 +125,12 @@ const JoinWorkspacePage: React.FC = () => {
         throw new Error(data.error || 'Failed to accept invitation.');
       }
 
-      navigate('/dashboard?joined=true');
+      if (data.workspace_id) {
+        localStorage.setItem('xcape_active_workspace_id', String(data.workspace_id));
+        navigate(`/dashboard?joined=true&workspace_id=${data.workspace_id}`);
+      } else {
+        navigate('/dashboard?joined=true');
+      }
     } catch (err: any) {
       setError(err.message || 'An error occurred while accepting the invitation.');
     } finally {
@@ -178,7 +183,12 @@ const JoinWorkspacePage: React.FC = () => {
 
       // Automatically store session in AuthContext
       setAuthSession(data.user, data.token);
-      navigate('/dashboard?joined=true');
+      if (data.workspace_id) {
+        localStorage.setItem('xcape_active_workspace_id', String(data.workspace_id));
+        navigate(`/dashboard?joined=true&workspace_id=${data.workspace_id}`);
+      } else {
+        navigate('/dashboard?joined=true');
+      }
     } catch (err: any) {
       setError(err.message || 'Registration failed.');
     } finally {
@@ -230,7 +240,12 @@ const JoinWorkspacePage: React.FC = () => {
         throw new Error(acceptData.error || 'Failed to join workspace after login.');
       }
 
-      navigate('/dashboard?joined=true');
+      if (acceptData.workspace_id) {
+        localStorage.setItem('xcape_active_workspace_id', String(acceptData.workspace_id));
+        navigate(`/dashboard?joined=true&workspace_id=${acceptData.workspace_id}`);
+      } else {
+        navigate('/dashboard?joined=true');
+      }
     } catch (err: any) {
       setError(err.message || 'Sign in and join failed.');
     } finally {
