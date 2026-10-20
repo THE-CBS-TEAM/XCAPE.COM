@@ -113,7 +113,7 @@ const SimulatorPage: React.FC = () => {
       slug: 'esmda',
       category: 'smoother',
       execution_mode: 'builtin_esmda',
-      equation_latex: '\mathbf{K}^{(l)} = \mathbf{C}_{MD}^{(l)} (\mathbf{C}_{DD}^{(l)} + \alpha_l \mathbf{C}_D)^{-1} \\ \mathbf{m}_j^{(l+1)} = \mathbf{m}_j^{(l)} + \mathbf{K}^{(l)}(\mathbf{d}_{uc, j}^{(l)} - \mathbf{d}_j^{(l)})',
+      equation_latex: '\\mathbf{K}^{(l)} = \\mathbf{C}_{MD}^{(l)} (\\mathbf{C}_{DD}^{(l)} + \\alpha_l \\mathbf{C}_D)^{-1} \\\\ \\mathbf{m}_j^{(l+1)} = \\mathbf{m}_j^{(l)} + \\mathbf{K}^{(l)}(\\mathbf{d}_{uc, j}^{(l)} - \\mathbf{d}_j^{(l)})',
       description: 'Industry gold standard for reservoir history matching. Assimilates complete historical production profile at once over multiple iterations with covariance inflation.',
       references: 'Emerick & Reynolds (2013)',
       hyperparameter_schema: {},
@@ -128,7 +128,7 @@ const SimulatorPage: React.FC = () => {
       slug: 'enkf',
       category: 'filter',
       execution_mode: 'builtin_enkf',
-      equation_latex: '\mathbf{K}_k = \mathbf{C}_{xy} (\mathbf{C}_{yy} + \mathbf{R})^{-1} \\ \mathbf{x}_{k, j}^a = \mathbf{x}_{k, j}^f + \mathbf{K}_k (\mathbf{y}_k - \mathbf{H}\mathbf{x}_{k, j}^f)',
+      equation_latex: '\\mathbf{K}_k = \\mathbf{C}_{xy} (\\mathbf{C}_{yy} + \\mathbf{R})^{-1} \\\\ \\mathbf{x}_{k, j}^a = \\mathbf{x}_{k, j}^f + \\mathbf{K}_k (\\mathbf{y}_k - \\mathbf{H}\\mathbf{x}_{k, j}^f)',
       description: 'Sequential data assimilation updating parameter states step-by-step through historical timesteps.',
       references: 'Evensen (1994)',
       hyperparameter_schema: {},
@@ -143,7 +143,7 @@ const SimulatorPage: React.FC = () => {
       slug: 'es',
       category: 'smoother',
       execution_mode: 'builtin_es',
-      equation_latex: '\mathbf{K} = \mathbf{C}_{MD} (\mathbf{C}_{DD} + \mathbf{C}_D)^{-1} \\ \mathbf{m}_j^a = \mathbf{m}_j^f + \mathbf{K}(\mathbf{d}_{obs} - \mathbf{d}_j^f)',
+      equation_latex: '\\mathbf{K} = \\mathbf{C}_{MD} (\\mathbf{C}_{DD} + \\mathbf{C}_D)^{-1} \\\\ \\mathbf{m}_j^a = \\mathbf{m}_j^f + \\mathbf{K}(\\mathbf{d}_{obs} - \\mathbf{d}_j^f)',
       description: 'Single-pass smoother updating prior models in one direct Kalman projection without iteration.',
       references: 'van Leeuwen & Evensen (1996)',
       hyperparameter_schema: {},
@@ -692,12 +692,17 @@ const SimulatorPage: React.FC = () => {
       })
 
       if (!createRes.ok) {
-        let errMsg = 'Failed to create simulation'
+        let errMsg = `Failed to create simulation (status ${createRes.status})`
         try {
-          const errData = await createRes.json()
-          errMsg = errData.detail || JSON.stringify(errData)
-        } catch (_) {
-          errMsg = await createRes.text()
+          const text = await createRes.text()
+          try {
+            const errData = JSON.parse(text)
+            errMsg = errData.detail || (typeof errData === 'object' ? JSON.stringify(errData) : String(errData))
+          } catch {
+            errMsg = text || errMsg
+          }
+        } catch {
+          // keep fallback
         }
         console.error('[SIM] Simulation creation error:', errMsg)
         showToast(`Simulation creation failed: ${errMsg}`, 'error')
@@ -2121,14 +2126,19 @@ const SimulatorPage: React.FC = () => {
                                 body: JSON.stringify(payload),
                               })
                               if (!createRes.ok) {
-                                let errMsg = 'Failed to create simulation'
+                                let errMsg = `Failed to create simulation (status ${createRes.status})`
                                 try {
-                                  const errData = await createRes.json()
-                                  errMsg = errData.detail || JSON.stringify(errData)
-                                } catch (_) {
-                                  errMsg = await createRes.text()
+                                  const text = await createRes.text()
+                                  try {
+                                    const errData = JSON.parse(text)
+                                    errMsg = errData.detail || (typeof errData === 'object' ? JSON.stringify(errData) : String(errData))
+                                  } catch {
+                                    errMsg = text || errMsg
+                                  }
+                                } catch {
+                                  // keep fallback
                                 }
-                                console.error('[EnKF] Create simulation failed:', errMsg)
+                                console.error('[SIM] Create simulation failed:', errMsg)
                                 showToast(`Simulation creation failed: ${errMsg}`, 'error')
                                 throw new Error(errMsg)
                               }
@@ -2157,17 +2167,32 @@ const SimulatorPage: React.FC = () => {
                                 }),
                               })
                               if (enkfRes.status === 202) {
-                                await enkfRes.json()
+                                // Background simulation accepted; pollProgress handles updates & completion
                                 return
                               }
-                              if (!enkfRes.ok) throw new Error('EnKF failed')
+                              if (!enkfRes.ok) {
+                                let errText = 'Simulation execution failed'
+                                try {
+                                  const text = await enkfRes.text()
+                                  try {
+                                    const errData = JSON.parse(text)
+                                    errText = errData.detail || errData.error || JSON.stringify(errData)
+                                  } catch {
+                                    errText = text || errText
+                                  }
+                                } catch {
+                                  // keep fallback
+                                }
+                                showToast(errText, 'error')
+                                throw new Error(errText)
+                              }
                               const result = await enkfRes.json()
-
-                              // Ensure final progress and results are set (pollProgress may already have done this)
-                              setRunProgress(100)
-                              setResults(result.simulation)
-                              setIsRunning(false)
-                              setTabValue(3)
+                              if (result.simulation) {
+                                setRunProgress(100)
+                                setResults(result.simulation)
+                                setIsRunning(false)
+                                setTabValue(3)
+                              }
                             } catch (err) {
                               console.error(err)
                               setIsRunning(false)
@@ -2181,7 +2206,7 @@ const SimulatorPage: React.FC = () => {
                             },
                           }}
                         >
-                          Run EnKF + Forecasts
+                          {`Run ${activeAlg?.slug === 'esmda' ? 'ES-MDA' : activeAlg?.slug === 'enkf' ? 'EnKF' : activeAlg?.slug === 'es' ? 'Ensemble Smoother' : (activeAlg?.name || 'History Matching')} + Forecasts`}
                         </Button>
                       </Box>
                     ) : (
