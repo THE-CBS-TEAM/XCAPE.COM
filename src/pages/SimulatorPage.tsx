@@ -20,6 +20,15 @@ import {
   Tabs,
   LinearProgress,
   useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Checkbox,
+  Chip,
+  Paper,
 } from '@mui/material'
 import {
   Upload as UploadIcon,
@@ -61,9 +70,136 @@ function TabPanel(props: TabPanelProps) {
 
 const SimulatorPage: React.FC = () => {
   const theme = useTheme()
+  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
   const activeStep = 0
   const [tabValue, setTabValue] = useState(0)
-  const [algorithmType, setAlgorithmType] = useState('enkf')
+  // Multi-Algorithm Definition & Dynamic State
+  interface AlgorithmDefinition {
+    id: number
+    name: string
+    slug: string
+    category: string
+    execution_mode: string
+    equation_latex: string
+    description: string
+    references: string
+    hyperparameter_schema: any
+    default_hyperparameters: any
+    is_active: boolean
+    is_default: boolean
+  }
+
+  interface ParameterEstimateConfig {
+    key: string
+    name: string
+    unit: string
+    enabled: boolean
+    prior_mean: number
+    prior_std_percent: number
+    min_bound: number
+    max_bound: number
+  }
+
+  const [availableAlgorithms, setAvailableAlgorithms] = useState<AlgorithmDefinition[]>([
+    {
+      id: 1,
+      name: 'Ensemble Smoother with Multiple Data Assimilation (ES-MDA)',
+      slug: 'esmda',
+      category: 'smoother',
+      execution_mode: 'builtin_esmda',
+      equation_latex: '\mathbf{K}^{(l)} = \mathbf{C}_{MD}^{(l)} (\mathbf{C}_{DD}^{(l)} + \alpha_l \mathbf{C}_D)^{-1} \\ \mathbf{m}_j^{(l+1)} = \mathbf{m}_j^{(l)} + \mathbf{K}^{(l)}(\mathbf{d}_{uc, j}^{(l)} - \mathbf{d}_j^{(l)})',
+      description: 'Industry gold standard for reservoir history matching. Assimilates complete historical production profile at once over multiple iterations with covariance inflation.',
+      references: 'Emerick & Reynolds (2013)',
+      hyperparameter_schema: {},
+      default_hyperparameters: {},
+      is_active: true,
+      is_default: true,
+    },
+    {
+      id: 2,
+      name: 'Ensemble Kalman Filter (EnKF)',
+      slug: 'enkf',
+      category: 'filter',
+      execution_mode: 'builtin_enkf',
+      equation_latex: '\mathbf{K}_k = \mathbf{C}_{xy} (\mathbf{C}_{yy} + \mathbf{R})^{-1} \\ \mathbf{x}_{k, j}^a = \mathbf{x}_{k, j}^f + \mathbf{K}_k (\mathbf{y}_k - \mathbf{H}\mathbf{x}_{k, j}^f)',
+      description: 'Sequential data assimilation updating parameter states step-by-step through historical timesteps.',
+      references: 'Evensen (1994)',
+      hyperparameter_schema: {},
+      default_hyperparameters: {},
+      is_active: true,
+      is_default: false,
+    },
+    {
+      id: 3,
+      name: 'Single-Step Ensemble Smoother (ES)',
+      slug: 'es',
+      category: 'smoother',
+      execution_mode: 'builtin_es',
+      equation_latex: '\mathbf{K} = \mathbf{C}_{MD} (\mathbf{C}_{DD} + \mathbf{C}_D)^{-1} \\ \mathbf{m}_j^a = \mathbf{m}_j^f + \mathbf{K}(\mathbf{d}_{obs} - \mathbf{d}_j^f)',
+      description: 'Single-pass smoother updating prior models in one direct Kalman projection without iteration.',
+      references: 'van Leeuwen & Evensen (1996)',
+      hyperparameter_schema: {},
+      default_hyperparameters: {},
+      is_active: true,
+      is_default: false,
+    }
+  ])
+
+  const [selectedAlgorithm, setSelectedAlgorithm] = useState<string>('esmda')
+  // const [algorithmType, setAlgorithmType] = useState('esmda')
+
+  // Hyperparameters
+  const [ensembleSize, setEnsembleSize] = useState<number>(100)
+  const [numIterations, setNumIterations] = useState<number>(4)
+  const [alphaSchedule, setAlphaSchedule] = useState<'geometric' | 'uniform'>('geometric')
+  const [targetRmse, setTargetRmse] = useState<number>(0.03)
+  const [inflationFactor, setInflationFactor] = useState<number>(1.05)
+  const [localizationRadius, setLocalizationRadius] = useState<number>(5)
+
+  // Configurable Parameters State
+  const [parametersToEstimate, setParametersToEstimate] = useState<ParameterEstimateConfig[]>([
+    { key: 'permeability', name: 'Permeability (k)', unit: 'mD', enabled: true, prior_mean: 100, prior_std_percent: 25, min_bound: 1.0, max_bound: 5000.0 },
+    { key: 'porosity', name: 'Porosity (φ)', unit: '%', enabled: true, prior_mean: 20, prior_std_percent: 15, min_bound: 5.0, max_bound: 40.0 },
+    { key: 'initial_pressure', name: 'Initial Pressure (Pi)', unit: 'psi', enabled: true, prior_mean: 3000, prior_std_percent: 10, min_bound: 1000.0, max_bound: 6000.0 },
+    { key: 'water_saturation', name: 'Water Saturation (Sw)', unit: '%', enabled: true, prior_mean: 30, prior_std_percent: 20, min_bound: 10.0, max_bound: 85.0 },
+    { key: 'thickness', name: 'Net Pay Thickness (h)', unit: 'ft', enabled: false, prior_mean: 50, prior_std_percent: 15, min_bound: 10.0, max_bound: 300.0 },
+    { key: 'area', name: 'Drainage Area (A)', unit: 'acres', enabled: false, prior_mean: 160, prior_std_percent: 20, min_bound: 40.0, max_bound: 640.0 },
+    { key: 'rock_compressibility', name: 'Rock Compressibility (cr)', unit: '1/psi', enabled: false, prior_mean: 3.5e-6, prior_std_percent: 25, min_bound: 1e-6, max_bound: 1e-5 },
+    { key: 'oil_viscosity', name: 'Oil Viscosity (μo)', unit: 'cp', enabled: false, prior_mean: 1.5, prior_std_percent: 20, min_bound: 0.2, max_bound: 50.0 },
+  ])
+
+  // Observation Channels State
+  const [obsChannels, setObsChannels] = useState<{
+    [key: string]: { enabled: boolean; weight: number; error_percent: number; label: string }
+  }>({
+    oil: { enabled: true, weight: 1.0, error_percent: 5.0, label: 'Oil Rate (bbl/d)' },
+    water: { enabled: true, weight: 0.8, error_percent: 7.0, label: 'Water Rate (bbl/d)' },
+    gas: { enabled: true, weight: 0.6, error_percent: 10.0, label: 'Gas Rate (scf/d)' },
+    pressure: { enabled: true, weight: 1.2, error_percent: 3.0, label: 'Pressure (psi)' },
+  })
+
+  const activeAlg = availableAlgorithms.find(a => a.slug === selectedAlgorithm) || availableAlgorithms[0]
+
+  useEffect(() => {
+    const fetchAlgorithms = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/algorithms/`)
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data) && data.length > 0) {
+            setAvailableAlgorithms(data)
+            const defAlg = data.find((a: any) => a.is_default) || data[0]
+            if (defAlg) {
+              setSelectedAlgorithm(defAlg.slug)
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[Algorithms] Using default algorithms:', err)
+      }
+    }
+    fetchAlgorithms()
+  }, [API_BASE])
   const [isRunning, setIsRunning] = useState(false)
   const [runProgress, setRunProgress] = useState(0)
   const [simulationId, setSimulationId] = useState<number | null>(null)
@@ -106,7 +242,6 @@ const SimulatorPage: React.FC = () => {
     thickness?: number | null
   } | null>(null)
 
-  const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
   const handleProductionFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -1487,90 +1622,374 @@ const SimulatorPage: React.FC = () => {
           {/* Tab 2: Configuration */}
           <TabPanel value={tabValue} index={1}>
             <Grid container spacing={3}>
+              {/* 1. Algorithm Selection & Mathematical Formulation */}
               <Grid item xs={12} md={6}>
-                <Card>
+                <Card sx={{ height: '100%' }}>
                   <CardContent>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 700,
-                        mb: 3,
-                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
-                      }}
-                    >
-                      Algorithm Selection
-                    </Typography>
-                    <FormControl fullWidth sx={{ mb: 3 }}>
-                      <InputLabel>Algorithm Type</InputLabel>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                      <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81' }}>
+                        Algorithm Selection
+                      </Typography>
+                      {activeAlg && (
+                        <Chip
+                          label={activeAlg.category === 'smoother' ? 'Ensemble Smoother' : (activeAlg.category === 'filter' ? 'Sequential Filter' : 'Custom Equation')}
+                          size="small"
+                          sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#0369A1' : '#E0F2FE', color: theme.palette.mode === 'dark' ? '#BAE6FD' : '#0369A1', fontWeight: 600 }}
+                        />
+                      )}
+                    </Box>
+
+                    <FormControl fullWidth sx={{ mb: 2 }}>
+                      <InputLabel>Algorithm Engine</InputLabel>
                       <Select
-                        value={algorithmType}
-                        label="Algorithm Type"
-                        onChange={(e) => setAlgorithmType(e.target.value)}
+                        value={selectedAlgorithm}
+                        label="Algorithm Engine"
+                        onChange={(e) => {
+                          const val = e.target.value
+                          setSelectedAlgorithm(val)
+                                                    if (val === 'esmda') {
+                            setNumIterations(4)
+                            setTargetRmse(0.03)
+                          } else if (val === 'enkf') {
+                            setNumIterations(10)
+                            setTargetRmse(0.05)
+                          } else if (val === 'es') {
+                            setNumIterations(1)
+                          }
+                        }}
                       >
-                        <MenuItem value="manual">Manual Baseline Matching</MenuItem>
-                        <MenuItem value="enkf">Ensemble Kalman Filter (EnKF)</MenuItem>
+                        {availableAlgorithms.map((alg) => (
+                          <MenuItem key={alg.slug} value={alg.slug}>
+                            {alg.name} {alg.is_default && '(Recommended)'}
+                          </MenuItem>
+                        ))}
                       </Select>
                     </FormControl>
 
-                    <TextField
-                      fullWidth
-                      label="Ensemble Size"
-                      type="number"
-                      defaultValue={100}
-                      sx={{ mb: 2 }}
-                      helperText="Number of ensemble members (50-500)"
-                    />
-
-                    <FormControl fullWidth>
-                      <InputLabel>Update Frequency</InputLabel>
-                      <Select defaultValue="daily">
-                        <MenuItem value="daily">Daily</MenuItem>
-                        <MenuItem value="weekly">Weekly</MenuItem>
-                        <MenuItem value="monthly">Monthly</MenuItem>
-                      </Select>
-                    </FormControl>
+                    {activeAlg && (
+                      <Box sx={{ p: 2, borderRadius: 2, backgroundColor: theme.palette.mode === 'dark' ? '#0F172A' : '#F8FAFC', border: '1px solid', borderColor: theme.palette.mode === 'dark' ? '#1E293B' : '#E2E8F0', mb: 2 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#38BDF8', display: 'block', mb: 0.5 }}>
+                          MATHEMATICAL FORMULATION
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontFamily: 'monospace', fontSize: '0.82rem', color: theme.palette.mode === 'dark' ? '#93C5FD' : '#1E40AF', whiteSpace: 'pre-wrap', mb: 1.5, p: 1, backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#EFF6FF', borderRadius: 1, lineHeight: 1.4 }}>
+                          {activeAlg.equation_latex || 'Kalman update: m = m + K (d_obs - d_sim)'}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.83rem', color: 'text.secondary', lineHeight: 1.5 }}>
+                          {activeAlg.description}
+                        </Typography>
+                        {activeAlg.references && (
+                          <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.disabled', fontStyle: 'italic' }}>
+                            Reference: {activeAlg.references}
+                          </Typography>
+                        )}
+                      </Box>
+                    )}
                   </CardContent>
                 </Card>
               </Grid>
 
+              {/* 2. Hyperparameter Settings */}
               <Grid item xs={12} md={6}>
+                <Card sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81' }}>
+                      Hyperparameters & Convergence
+                    </Typography>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Ensemble Size (Ne)"
+                          type="number"
+                          value={ensembleSize}
+                          onChange={(e) => setEnsembleSize(Math.max(10, Math.min(500, Number(e.target.value) || 100)))}
+                          helperText="Realizations count (30–300)"
+                          size="small"
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label={selectedAlgorithm === 'esmda' ? "Assimilation Steps (Na)" : "Max Iterations"}
+                          type="number"
+                          value={numIterations}
+                          disabled={selectedAlgorithm === 'es'}
+                          onChange={(e) => setNumIterations(Math.max(1, Math.min(50, Number(e.target.value) || 4)))}
+                          helperText={selectedAlgorithm === 'esmda' ? "Recommended 4 steps" : "Iteration budget"}
+                          size="small"
+                        />
+                      </Grid>
+
+                      {selectedAlgorithm === 'esmda' && (
+                        <Grid item xs={12} sm={6}>
+                          <FormControl fullWidth size="small">
+                            <InputLabel>Alpha Schedule</InputLabel>
+                            <Select
+                              value={alphaSchedule}
+                              label="Alpha Schedule"
+                              onChange={(e) => setAlphaSchedule(e.target.value as any)}
+                            >
+                              <MenuItem value="geometric">Geometric Decreasing (Standard)</MenuItem>
+                              <MenuItem value="uniform">Uniform (Equal α_l = Na)</MenuItem>
+                            </Select>
+                          </FormControl>
+                        </Grid>
+                      )}
+
+                      <Grid item xs={12} sm={selectedAlgorithm === 'esmda' ? 6 : 6}>
+                        <TextField
+                          fullWidth
+                          label="Target RMSE"
+                          type="number"
+                          inputProps={{ step: 0.005 }}
+                          value={targetRmse}
+                          onChange={(e) => setTargetRmse(Number(e.target.value) || 0.03)}
+                          helperText="Root mean square error stopping tolerance"
+                          size="small"
+                        />
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <TextField
+                          fullWidth
+                          label="Inflation Factor (β)"
+                          type="number"
+                          inputProps={{ step: 0.01 }}
+                          value={inflationFactor}
+                          onChange={(e) => setInflationFactor(Number(e.target.value) || 1.05)}
+                          helperText="Spread preservation factor (1.00–1.20)"
+                          size="small"
+                        />
+                      </Grid>
+
+                      {selectedAlgorithm === 'enkf' && (
+                        <Grid item xs={12} sm={6}>
+                          <TextField
+                            fullWidth
+                            label="Localization Radius"
+                            type="number"
+                            value={localizationRadius}
+                            onChange={(e) => setLocalizationRadius(Number(e.target.value) || 5)}
+                            helperText="Grid blocks for EnKF localization"
+                            size="small"
+                          />
+                        </Grid>
+                      )}
+                    </Grid>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* 3. Parameter Selection & Prior Bounds Table */}
+              <Grid item xs={12}>
                 <Card>
                   <CardContent>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 700,
-                        mb: 3,
-                        color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
-                      }}
-                    >
-                      Convergence Settings
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                      <Box>
+                        <Typography variant="h6" sx={{ fontWeight: 700, color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81' }}>
+                          Reservoir Parameters to Calibrate (Dynamic State Vector)
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                          Select which parameters to calibrate using data assimilation. Unselected parameters remain fixed at their base values.
+                        </Typography>
+                      </Box>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          setParametersToEstimate(prev => prev.map(p => {
+                            let mean = p.prior_mean
+                            if (p.key === 'initial_pressure' && initialPressure !== '') mean = Number(initialPressure)
+                            if (p.key === 'porosity' && porosity !== '') mean = Number(porosity)
+                            if (p.key === 'permeability' && permeability !== '') mean = Number(permeability)
+                            if (p.key === 'water_saturation' && waterSaturation !== '') mean = Number(waterSaturation)
+                            if (p.key === 'thickness' && netPayThickness !== '') mean = Number(netPayThickness)
+                            if (p.key === 'area' && drainageArea !== '') mean = Number(drainageArea)
+                            return { ...p, prior_mean: mean }
+                          }))
+                        }}
+                      >
+                        Sync Priors from Inputs
+                      </Button>
+                    </Box>
+
+                    <TableContainer component={Paper} variant="outlined" sx={{ backgroundColor: 'transparent' }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ backgroundColor: theme.palette.mode === 'dark' ? '#1E293B' : '#F1F5F9' }}>
+                            <TableCell padding="checkbox">Calibrate</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Parameter Name</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Unit</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Prior Mean</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Uncertainty (±%)</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Min Bound</TableCell>
+                            <TableCell sx={{ fontWeight: 700 }}>Max Bound</TableCell>
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {parametersToEstimate.map((param, pIdx) => (
+                            <TableRow key={param.key} hover sx={{ opacity: param.enabled ? 1 : 0.6 }}>
+                              <TableCell padding="checkbox">
+                                <Checkbox
+                                  checked={param.enabled}
+                                  onChange={(e) => {
+                                    const updated = [...parametersToEstimate]
+                                    updated[pIdx].enabled = e.target.checked
+                                    setParametersToEstimate(updated)
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell sx={{ fontWeight: param.enabled ? 600 : 400 }}>
+                                {param.name}
+                              </TableCell>
+                              <TableCell sx={{ color: 'text.secondary' }}>
+                                {param.unit}
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  disabled={!param.enabled}
+                                  value={param.prior_mean}
+                                  onChange={(e) => {
+                                    const updated = [...parametersToEstimate]
+                                    updated[pIdx].prior_mean = Number(e.target.value) || 0
+                                    setParametersToEstimate(updated)
+                                  }}
+                                  sx={{ width: 110 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  disabled={!param.enabled}
+                                  value={param.prior_std_percent}
+                                  onChange={(e) => {
+                                    const updated = [...parametersToEstimate]
+                                    updated[pIdx].prior_std_percent = Number(e.target.value) || 15
+                                    setParametersToEstimate(updated)
+                                  }}
+                                  sx={{ width: 90 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  disabled={!param.enabled}
+                                  value={param.min_bound}
+                                  onChange={(e) => {
+                                    const updated = [...parametersToEstimate]
+                                    updated[pIdx].min_bound = Number(e.target.value) || 0
+                                    setParametersToEstimate(updated)
+                                  }}
+                                  sx={{ width: 100 }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <TextField
+                                  size="small"
+                                  type="number"
+                                  disabled={!param.enabled}
+                                  value={param.max_bound}
+                                  onChange={(e) => {
+                                    const updated = [...parametersToEstimate]
+                                    updated[pIdx].max_bound = Number(e.target.value) || 0
+                                    setParametersToEstimate(updated)
+                                  }}
+                                  sx={{ width: 100 }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              {/* 4. Observation Channels & Weighting */}
+              <Grid item xs={12}>
+                <Card>
+                  <CardContent>
+                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81' }}>
+                      Observation Channels & Measurement Error Weighting
                     </Typography>
-                    <TextField
-                      fullWidth
-                      label="Target RMSE"
-                      type="number"
-                      defaultValue={0.05}
-                      sx={{ mb: 2 }}
-                      helperText="Target root mean square error"
-                    />
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                      Assign relative match importance and expected measurement noise to each historical production stream.
+                    </Typography>
 
-                    <TextField
-                      fullWidth
-                      label="Max Iterations"
-                      type="number"
-                      defaultValue={50}
-                      sx={{ mb: 2 }}
-                      helperText="Maximum number of iterations"
-                    />
+                    <Grid container spacing={2}>
+                      {Object.entries(obsChannels).map(([key, ch]) => (
+                        <Grid item xs={12} sm={6} md={3} key={key}>
+                          <Box
+                            sx={{
+                              p: 2,
+                              borderRadius: 2,
+                              border: '1px solid',
+                              borderColor: ch.enabled ? (theme.palette.mode === 'dark' ? '#0284C7' : '#93C5FD') : (theme.palette.mode === 'dark' ? '#1E293B' : '#E2E8F0'),
+                              backgroundColor: ch.enabled ? (theme.palette.mode === 'dark' ? '#0B1E3B' : '#F0F9FF') : 'transparent',
+                              opacity: ch.enabled ? 1 : 0.6,
+                            }}
+                          >
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                              <Checkbox
+                                checked={ch.enabled}
+                                onChange={(e) => {
+                                  setObsChannels(prev => ({
+                                    ...prev,
+                                    [key]: { ...prev[key], enabled: e.target.checked }
+                                  }))
+                                }}
+                                sx={{ p: 0.5, mr: 1 }}
+                              />
+                              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+                                {ch.label}
+                              </Typography>
+                            </Box>
 
-                    <TextField
-                      fullWidth
-                      label="Localization Radius"
-                      type="number"
-                      defaultValue={5}
-                      helperText="Grid blocks for localization (EnKF)"
-                    />
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Match Weight"
+                              type="number"
+                              inputProps={{ step: 0.1, min: 0.1, max: 5.0 }}
+                              disabled={!ch.enabled}
+                              value={ch.weight}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 1.0
+                                setObsChannels(prev => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], weight: val }
+                                }))
+                              }}
+                              sx={{ mb: 1.5 }}
+                            />
+
+                            <TextField
+                              fullWidth
+                              size="small"
+                              label="Noise Std Dev (%)"
+                              type="number"
+                              inputProps={{ step: 1, min: 1, max: 50 }}
+                              disabled={!ch.enabled}
+                              value={ch.error_percent}
+                              onChange={(e) => {
+                                const val = Number(e.target.value) || 5.0
+                                setObsChannels(prev => ({
+                                  ...prev,
+                                  [key]: { ...prev[key], error_percent: val }
+                                }))
+                              }}
+                            />
+                          </Box>
+                        </Grid>
+                      ))}
+                    </Grid>
                   </CardContent>
                 </Card>
               </Grid>
@@ -1626,10 +2045,38 @@ const SimulatorPage: React.FC = () => {
                             setIsRunning(true)
                             setRunProgress(0)
                             try {
+                              const algorithmConfig = {
+                                algorithm_type: selectedAlgorithm,
+                                ensemble_size: Number(ensembleSize),
+                                num_iterations: Number(numIterations),
+                                alpha_schedule: alphaSchedule,
+                                target_rmse: Number(targetRmse),
+                                inflation_factor: Number(inflationFactor),
+                                localization_radius: Number(localizationRadius),
+                                parameters_to_estimate: parametersToEstimate.map(p => ({
+                                  key: p.key,
+                                  name: p.name,
+                                  enabled: p.enabled,
+                                  prior_mean: Number(p.prior_mean),
+                                  prior_std_percent: Number(p.prior_std_percent),
+                                  min_bound: Number(p.min_bound),
+                                  max_bound: Number(p.max_bound)
+                                })),
+                                observation_channels: {
+                                  oil: { enabled: obsChannels.oil.enabled, weight: Number(obsChannels.oil.weight), error_percent: Number(obsChannels.oil.error_percent) },
+                                  water: { enabled: obsChannels.water.enabled, weight: Number(obsChannels.water.weight), error_percent: Number(obsChannels.water.error_percent) },
+                                  gas: { enabled: obsChannels.gas.enabled, weight: Number(obsChannels.gas.weight), error_percent: Number(obsChannels.gas.error_percent) },
+                                  pressure: { enabled: obsChannels.pressure.enabled, weight: Number(obsChannels.pressure.weight), error_percent: Number(obsChannels.pressure.error_percent) }
+                                }
+                              }
+
+                              const activeAlgObj = availableAlgorithms.find(a => a.slug === selectedAlgorithm)
                               const payload = {
-                                name: `EnKF Run - ${new Date().toISOString()}`,
-                                description: 'EnKF with prior/posterior forecasts',
-                                matching_type: 'enkf',
+                                name: `${activeAlgObj?.name || 'Calibration'} Run - ${new Date().toISOString()}`,
+                                description: `${activeAlgObj?.name || selectedAlgorithm} with dynamic parameter configuration`,
+                                matching_type: selectedAlgorithm,
+                                ...(activeAlgObj?.id ? { algorithm_definition: activeAlgObj.id } : {}),
+                                algorithm_config: algorithmConfig,
                                 initial_pressure: initialPressure !== '' ? Number(initialPressure) : undefined,
                                 porosity: porosity !== '' ? Number(porosity) : undefined,
                                 permeability: permeability !== '' ? Number(permeability) : undefined,
@@ -1665,9 +2112,11 @@ const SimulatorPage: React.FC = () => {
                                   'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
-                                  ensemble_size: 100,
-                                  num_iterations: 10,
+                                  ensemble_size: Number(ensembleSize),
+                                  num_iterations: Number(numIterations),
                                   forecast_period_days: 365,
+                                  algorithm_type: selectedAlgorithm,
+                                  algorithm_config: algorithmConfig,
                                 }),
                               })
                               if (enkfRes.status === 202) {

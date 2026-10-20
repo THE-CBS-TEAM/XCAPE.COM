@@ -46,10 +46,10 @@ const concepts: Concept[] = [
   },
   {
     id: 3,
-    title: 'Ensemble Kalman Filter',
+    title: 'Data Assimilation Suite (ES-MDA & EnKF)',
     shortDesc: 'Automated statistical algorithm for parameter estimation',
     fullDesc:
-      'The Ensemble Kalman Filter (EnKF) is an advanced statistical algorithm that automates the history matching process. It uses multiple simulations (ensemble) to estimate model parameters while quantifying prediction uncertainty, providing both best estimates and confidence intervals.',
+      'The XCAPE platform utilizes state-of-the-art data assimilation algorithms, primarily Ensemble Smoother with Multiple Data Assimilation (ES-MDA) and Ensemble Kalman Filter (EnKF). These methods use multiple reservoir model simulations (ensembles) to estimate uncertain parameters while rigorously quantifying prediction uncertainty envelopes.',
     icon: '🔄',
     image: 'https://images.pexels.com/photos/247763/pexels-photo-247763.jpeg?auto=compress&cs=tinysrgb&w=1600',
   },

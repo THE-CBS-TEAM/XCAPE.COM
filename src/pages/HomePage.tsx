@@ -703,10 +703,10 @@ const HomePage: React.FC = () => {
       h: 440,
     },
     {
-      title: 'Ensemble Kalman Filter',
+      title: 'Multi-Algorithm Data Assimilation',
       tag: 'Data Assimilation',
       description:
-        'Sequential assimilation that updates an ensemble of models as new data arrives — returning a calibrated model plus a quantified uncertainty envelope.',
+        'Global and sequential assimilation engines (ES-MDA, EnKF, and custom equation smoothers) that calibrate ensembles against historical data — delivering calibrated models with quantified uncertainty envelopes.',
       icon: <AutorenewIcon fontSize="small" />,
       image: IMG.industrial,
       span: 8,
@@ -749,8 +749,8 @@ const HomePage: React.FC = () => {
     },
     {
       n: '03',
-      title: 'Assimilate with EnKF',
-      desc: 'Sequentially update the ensemble against observed data — automatically, iteration after iteration.',
+      title: 'Calibrate with ES-MDA & EnKF',
+      desc: 'Assimilate historical production data across multiple iterations — automatically calibrating the ensemble while avoiding model collapse.',
       icon: <SyncIcon />,
     },
     {
@@ -762,7 +762,7 @@ const HomePage: React.FC = () => {
   ]
 
   const features = [
-    { title: 'Automated Matching', desc: 'EnKF-powered parameter estimation removes weeks of manual trial-and-error.', icon: <AutoFixHighIcon /> },
+    { title: 'Automated Multi-Algorithm Matching', desc: 'ES-MDA and EnKF parameter estimation removes weeks of manual trial-and-error.', icon: <AutoFixHighIcon /> },
     { title: 'Real-time Visualisation', desc: 'Interactive production charts, uncertainty bands and ensemble diagnostics.', icon: <BarChartIcon /> },
     { title: 'Educational Focus', desc: 'Transparent methods, guided workflows, fully reproducible runs.', icon: <SchoolIcon /> },
     { title: 'Open Source', desc: 'Powered by OPM Flow and open, inspectable, extensible tooling.', icon: <CodeIcon /> },
@@ -966,7 +966,7 @@ const HomePage: React.FC = () => {
               >
                 Turn field data into calibrated models, quantified uncertainty, and
                 confident production forecasts, engineered for both academic research and
-                real-world independent field development, powered by OPM Flow and the Ensemble Kalman Filter.
+                real-world independent field development, powered by OPM Flow and an extensible Multi-Algorithm Data Assimilation Suite (ES-MDA, EnKF, and dynamic equation smoothers).
               </Typography>
 
               {/* CTAs */}
@@ -2074,7 +2074,7 @@ const HomePage: React.FC = () => {
             <Typography
               sx={{ fontSize: '0.7rem', color: TEXT_DIMMER, fontFamily: 'ui-monospace, monospace' }}
             >
-              © {new Date().getFullYear()} · OPM Flow · EnKF
+              © {new Date().getFullYear()} · OPM Flow · ES-MDA · EnKF
             </Typography>
           </Box>
         </Container>

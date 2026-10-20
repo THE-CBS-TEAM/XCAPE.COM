@@ -58,7 +58,7 @@ const AboutPage: React.FC = () => {
     { name: 'Python', description: 'Backend development language' },
     { name: 'FastAPI', description: 'High-performance API framework' },
     { name: 'React', description: 'Frontend UI framework' },
-    { name: 'Ensemble Kalman Filter', description: 'Automated calibration algorithm' },
+    { name: 'Data Assimilation Suite', description: 'ES-MDA, EnKF, and customizable equation-driven calibration algorithms' },
     { name: 'PostgreSQL', description: 'Data persistence layer' },
   ]
 
