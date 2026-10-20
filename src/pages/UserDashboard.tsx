@@ -90,6 +90,13 @@ interface WorkspaceMember {
   joined_at: string;
 }
 
+const parseWorkspaceList = (raw: any): Workspace[] => {
+  if (Array.isArray(raw)) return raw;
+  if (raw && Array.isArray(raw.results)) return raw.results;
+  if (raw && Array.isArray(raw.data)) return raw.data;
+  return [];
+};
+
 const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -163,10 +170,11 @@ const UserDashboard: React.FC = () => {
 
       const data = await response.json();
       setDashboardData(data);
-      if (data.workspaces && data.workspaces.length > 0) {
-        setWorkspaces(data.workspaces);
-        if (!selectedWorkspaceId) {
-          setSelectedWorkspaceId(data.workspaces[0].id);
+      if (data.workspaces) {
+        const wsList = parseWorkspaceList(data.workspaces);
+        setWorkspaces(wsList);
+        if (wsList.length > 0) {
+          setSelectedWorkspaceId((prev) => prev ?? wsList[0].id);
         }
       }
     } catch (err) {
@@ -184,10 +192,11 @@ const UserDashboard: React.FC = () => {
         },
       });
       if (response.ok) {
-        const data = await response.json();
-        setWorkspaces(data);
-        if (data.length > 0 && !selectedWorkspaceId) {
-          setSelectedWorkspaceId(data[0].id);
+        const raw = await response.json();
+        const wsList = parseWorkspaceList(raw);
+        setWorkspaces(wsList);
+        if (wsList.length > 0) {
+          setSelectedWorkspaceId((prev) => prev ?? wsList[0].id);
         }
       }
     } catch (err) {
@@ -195,7 +204,8 @@ const UserDashboard: React.FC = () => {
     }
   };
 
-  const activeWorkspace = workspaces.find((w) => w.id === selectedWorkspaceId) || workspaces[0];
+  const workspaceList: Workspace[] = Array.isArray(workspaces) ? workspaces : parseWorkspaceList(workspaces);
+  const activeWorkspace = workspaceList.find((w) => w && w.id === selectedWorkspaceId) || workspaceList[0] || null;
 
   const handleLogout = async () => {
     await logout();
@@ -674,14 +684,14 @@ const UserDashboard: React.FC = () => {
                       <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: 'text.secondary' }}>
                         Active Collaborative Workspace
                       </Typography>
-                      {workspaces.length > 0 ? (
+                      {workspaceList.length > 0 ? (
                         <FormControl fullWidth size="small" sx={{ mt: 1 }}>
                           <Select
                             value={activeWorkspace ? activeWorkspace.id : ''}
                             onChange={(e) => setSelectedWorkspaceId(Number(e.target.value))}
                             sx={{ fontWeight: 700 }}
                           >
-                            {workspaces.map((ws) => (
+                            {workspaceList.map((ws) => (
                               <MenuItem key={ws.id} value={ws.id}>
                                 {ws.name} — {ws.member_count} member(s) ({ws.current_user_role?.toUpperCase() || 'MEMBER'})
                               </MenuItem>

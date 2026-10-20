@@ -186,10 +186,11 @@ const SimulatorPage: React.FC = () => {
       try {
         const res = await fetch(`${API_BASE}/algorithms/`)
         if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data) && data.length > 0) {
-            setAvailableAlgorithms(data)
-            const defAlg = data.find((a: any) => a.is_default) || data[0]
+          const raw = await res.json()
+          const algList = Array.isArray(raw) ? raw : (Array.isArray(raw?.results) ? raw.results : [])
+          if (algList.length > 0) {
+            setAvailableAlgorithms(algList)
+            const defAlg = algList.find((a: any) => a.is_default) || algList[0]
             if (defAlg) {
               setSelectedAlgorithm(defAlg.slug)
             }
