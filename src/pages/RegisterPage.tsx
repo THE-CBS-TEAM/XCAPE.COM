@@ -61,8 +61,8 @@ const RegisterPage: React.FC = () => {
   const validateForm = (): boolean => {
     const errors: { [key: string]: string } = {};
 
-    if (!formData.username) errors.username = 'Username is required';
-    else if (formData.username.length < 3) errors.username = 'Username must be at least 3 characters';
+    if (!formData.username.trim()) errors.username = 'Username is required';
+    else if (formData.username.trim().length < 3) errors.username = 'Username must be at least 3 characters';
 
     if (!formData.email) errors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email is invalid';
@@ -353,7 +353,7 @@ const RegisterPage: React.FC = () => {
                       placeholder="Choose a username"
                       disabled={isLoading}
                       error={!!validationErrors.username}
-                      helperText={validationErrors.username}
+                      helperText={validationErrors.username || 'Spaces allowed (e.g. Osimi Godsgift)'}
                       variant="outlined"
                       inputProps={{
                         placeholder: 'Username',

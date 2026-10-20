@@ -18,6 +18,7 @@ import {
 } from '@mui/material'
 import {
   CheckCircle as CheckIcon,
+  Group as GroupIcon,
   Code as CodeIcon,
   School as SchoolIcon,
   Speed as SpeedIcon,
@@ -33,8 +34,13 @@ const AboutPage: React.FC = () => {
   const features = [
     {
       icon: <CheckIcon />,
-      title: 'Automated Matching',
-      description: 'EnKF-powered automated parameter estimation with uncertainty quantification',
+      title: 'Multi-Algorithm Automated Matching',
+      description: 'ES-MDA and EnKF-powered automated parameter estimation with uncertainty quantification',
+    },
+    {
+      icon: <GroupIcon />,
+      title: 'Collaborative Workspaces & Teams',
+      description: 'Built for teams — invite engineers, admins, and students via secure one-time access links to share models, simulations, and forecasts',
     },
     {
       icon: <SchoolIcon />,
@@ -59,6 +65,7 @@ const AboutPage: React.FC = () => {
     { name: 'FastAPI', description: 'High-performance API framework' },
     { name: 'React', description: 'Frontend UI framework' },
     { name: 'Data Assimilation Suite', description: 'ES-MDA, EnKF, and customizable equation-driven calibration algorithms' },
+    { name: 'Team Workspaces & Collaboration', description: 'Multi-user shared workspaces with role-based access (Owner, Admin, Engineer, Viewer)' },
     { name: 'PostgreSQL', description: 'Data persistence layer' },
   ]
 

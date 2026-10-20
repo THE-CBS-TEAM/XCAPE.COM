@@ -33,6 +33,7 @@ interface AuthContextType {
   }) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  setAuthSession: (user: User, token: string) => void;
   error: string | null;
   clearError: () => void;
 }
@@ -152,6 +153,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const setAuthSession = (newUser: User, newToken: string) => {
+    setToken(newToken);
+    setUser(newUser);
+    localStorage.setItem('authToken', newToken);
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+  };
+
   const updateProfile = async (data: Partial<User>) => {
     try {
       setError(null);
@@ -189,6 +197,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     register,
     logout,
     updateProfile,
+    setAuthSession,
     error,
     clearError,
   };

@@ -36,6 +36,7 @@ import {
   DownloadRounded as DownloadIcon,
   Info as InfoIcon,
   DataObject as DataObjectIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material'
 import { useAuth } from '@context/AuthContext'
 import ForecastCharts from '@components/ForecastCharts'
@@ -654,10 +655,10 @@ const SimulatorPage: React.FC = () => {
         name: `Run - ${new Date().toISOString()}`,
         description: 'Launched from frontend UI',
         matching_type: type === 'enkf' ? 'enkf' : 'baseline',
-        initial_pressure: initialPressure !== '' ? Number(initialPressure) : undefined,
-        porosity: porosity !== '' ? Number(porosity) : undefined,
-        permeability: permeability !== '' ? Number(permeability) : undefined,
-        water_saturation: waterSaturation !== '' ? Number(waterSaturation) : undefined,
+        initial_pressure: initialPressure !== '' ? Number(initialPressure) : (datasetParams?.initial_pressure ?? 3000),
+        porosity: porosity !== '' ? Number(porosity) : (datasetParams?.porosity ?? 20),
+        permeability: permeability !== '' ? Number(permeability) : (datasetParams?.permeability ?? 100),
+        water_saturation: waterSaturation !== '' ? Number(waterSaturation) : (datasetParams?.water_saturation ?? 25),
         ...(drainageArea !== '' && Number(drainageArea) > 0 ? { area: Number(drainageArea) } : {}),
         ...(netPayThickness !== '' && Number(netPayThickness) > 0 ? { thickness: Number(netPayThickness) } : {}),
         ...(uploadedDatasetId && { dataset: uploadedDatasetId }),
@@ -675,8 +676,16 @@ const SimulatorPage: React.FC = () => {
       })
 
       if (!createRes.ok) {
-        const err = await createRes.text()
-        throw new Error(err)
+        let errMsg = 'Failed to create simulation'
+        try {
+          const errData = await createRes.json()
+          errMsg = errData.detail || JSON.stringify(errData)
+        } catch (_) {
+          errMsg = await createRes.text()
+        }
+        console.error('[SIM] Simulation creation error:', errMsg)
+        alert(`Simulation creation failed: ${errMsg}`)
+        throw new Error(errMsg)
       }
 
       const created = await createRes.json()
@@ -1168,17 +1177,25 @@ const SimulatorPage: React.FC = () => {
         >
           XCAPE Simulator
         </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            textAlign: 'center',
-            color: 'textSecondary',
-            mb: 4,
-            fontSize: '1.1rem',
-          }}
-        >
-          Perform automated reservoir history matching and generate forecasts
-        </Typography>
+        <Box sx={{ textAlign: 'center', mb: 4 }}>
+          <Typography
+            variant="body1"
+            sx={{
+              color: 'textSecondary',
+              mb: 1.5,
+              fontSize: '1.1rem',
+            }}
+          >
+            Perform automated multi-algorithm reservoir history matching, model calibration, and collaborative forecasts.
+          </Typography>
+          <Chip
+            icon={<GroupIcon />}
+            label="Collaborative Team Workspaces Active — Runs and datasets are shared with your team"
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        </Box>
 
         {/* Process Steps */}
         <Card sx={{ mb: 4, p: 3 }}>
@@ -2077,10 +2094,10 @@ const SimulatorPage: React.FC = () => {
                                 matching_type: selectedAlgorithm,
                                 ...(activeAlgObj?.id ? { algorithm_definition: activeAlgObj.id } : {}),
                                 algorithm_config: algorithmConfig,
-                                initial_pressure: initialPressure !== '' ? Number(initialPressure) : undefined,
-                                porosity: porosity !== '' ? Number(porosity) : undefined,
-                                permeability: permeability !== '' ? Number(permeability) : undefined,
-                                water_saturation: waterSaturation !== '' ? Number(waterSaturation) : undefined,
+                                initial_pressure: initialPressure !== '' ? Number(initialPressure) : (datasetParams?.initial_pressure ?? 3000),
+                                porosity: porosity !== '' ? Number(porosity) : (datasetParams?.porosity ?? 20),
+                                permeability: permeability !== '' ? Number(permeability) : (datasetParams?.permeability ?? 100),
+                                water_saturation: waterSaturation !== '' ? Number(waterSaturation) : (datasetParams?.water_saturation ?? 25),
                                 ...(drainageArea !== '' && Number(drainageArea) > 0 ? { area: Number(drainageArea) } : {}),
                                 ...(netPayThickness !== '' && Number(netPayThickness) > 0 ? { thickness: Number(netPayThickness) } : {}),
                                 ...(uploadedDatasetId && { dataset: uploadedDatasetId }),
@@ -2094,7 +2111,18 @@ const SimulatorPage: React.FC = () => {
                                 },
                                 body: JSON.stringify(payload),
                               })
-                              if (!createRes.ok) throw new Error('Failed to create simulation')
+                              if (!createRes.ok) {
+                                let errMsg = 'Failed to create simulation'
+                                try {
+                                  const errData = await createRes.json()
+                                  errMsg = errData.detail || JSON.stringify(errData)
+                                } catch (_) {
+                                  errMsg = await createRes.text()
+                                }
+                                console.error('[EnKF] Create simulation failed:', errMsg)
+                                alert(`Simulation creation failed: ${errMsg}`)
+                                throw new Error(errMsg)
+                              }
                               const created = await createRes.json()
                               const id = created.id
                               setSimulationId(id)

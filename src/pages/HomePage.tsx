@@ -21,6 +21,7 @@ import {
   WaterDrop as WaterDropIcon,
   Timer as TimerIcon,
   PlayArrow as PlayArrowIcon,
+  Group as GroupIcon,
 } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 
@@ -762,10 +763,10 @@ const HomePage: React.FC = () => {
   ]
 
   const features = [
-    { title: 'Automated Multi-Algorithm Matching', desc: 'ES-MDA and EnKF parameter estimation removes weeks of manual trial-and-error.', icon: <AutoFixHighIcon /> },
+    { title: 'Automated Multi-Algorithm Matching', desc: 'ES-MDA, EnKF, and dynamic equation smoothing remove weeks of manual trial-and-error.', icon: <AutoFixHighIcon /> },
+    { title: 'Collaborative Team Workspaces', desc: 'Invite engineers, admins, and analysts via one-time access links. Share simulations and calibrate models together.', icon: <GroupIcon /> },
     { title: 'Real-time Visualisation', desc: 'Interactive production charts, uncertainty bands and ensemble diagnostics.', icon: <BarChartIcon /> },
-    { title: 'Educational Focus', desc: 'Transparent methods, guided workflows, fully reproducible runs.', icon: <SchoolIcon /> },
-    { title: 'Open Source', desc: 'Powered by OPM Flow and open, inspectable, extensible tooling.', icon: <CodeIcon /> },
+    { title: 'Classroom to Field Scalability', desc: 'Transparent methods, guided workflows, and enterprise multi-well field readiness.', icon: <SchoolIcon /> },
   ]
 
   const stats = [
@@ -966,7 +967,7 @@ const HomePage: React.FC = () => {
               >
                 Turn field data into calibrated models, quantified uncertainty, and
                 confident production forecasts, engineered for both academic research and
-                real-world independent field development, powered by OPM Flow and an extensible Multi-Algorithm Data Assimilation Suite (ES-MDA, EnKF, and dynamic equation smoothers).
+                real-world independent field development, built for seamless multi-user team collaboration. Powered by OPM Flow, shared collaborative workspaces, and an extensible Multi-Algorithm Data Assimilation Suite (ES-MDA, EnKF, and dynamic equation smoothers).
               </Typography>
 
               {/* CTAs */}

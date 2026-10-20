@@ -41,6 +41,7 @@ import DeveloperProfilePage from '@pages/DeveloperProfilePage'
 import ContactPage from '@pages/ContactPage'
 import LoginPage from '@pages/LoginPage'
 import RegisterPage from '@pages/RegisterPage'
+import JoinWorkspacePage from '@pages/JoinWorkspacePage'
 import UserDashboard from '@pages/UserDashboard'
 import SensitivityPage from '@pages/SensitivityPage'
 
@@ -530,6 +531,7 @@ const AppContent: React.FC = () => {
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/join" element={<JoinWorkspacePage />} />
             
             {/* Protected Routes */}
             <Route
