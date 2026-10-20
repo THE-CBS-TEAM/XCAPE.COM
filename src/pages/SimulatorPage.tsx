@@ -341,13 +341,18 @@ const SimulatorPage: React.FC = () => {
 
       setUploadedDatasetId(newDatasetId)
       setUploadSuccess(`Dataset uploaded successfully (ID: ${newDatasetId})${modelFile ? ' — with reservoir model' : ''} - Ready to use!`)
+      showToast(`Dataset uploaded successfully (ID: ${newDatasetId})`, 'success')
       setProductionFile(null)
       setModelFile(null)
       setUploadError('')
       console.log('[DATASET] Stored dataset ID:', newDatasetId, 'Name:', data.name)
     } catch (err) {
       console.error('Upload failed', err)
-      setUploadError(`Upload error: ${err instanceof Error ? err.message : 'Unknown error'}`)
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      setUploadError(`Upload error: ${msg}`)
+      showToast(`Upload failed: ${msg}`, 'error')
+    } finally {
+      setUploadLoading(false)
     }
   }
 
