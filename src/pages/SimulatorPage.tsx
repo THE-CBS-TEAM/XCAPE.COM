@@ -33,6 +33,7 @@ import {
 } from '@mui/material'
 import {
   Upload as UploadIcon,
+  CheckCircle as CheckCircleIcon,
   PlayArrow as PlayIcon,
   DownloadRounded as DownloadIcon,
   Info as InfoIcon,
@@ -345,6 +346,7 @@ const SimulatorPage: React.FC = () => {
       setProductionFile(null)
       setModelFile(null)
       setUploadError('')
+      setUploadLoading(false)
       console.log('[DATASET] Stored dataset ID:', newDatasetId, 'Name:', data.name)
     } catch (err) {
       console.error('Upload failed', err)
@@ -1355,7 +1357,7 @@ const SimulatorPage: React.FC = () => {
                         },
                       }}
                     >
-                      {productionFile ? `✓ ${productionFile.name}` : 'Select Production Data File'}
+                      {productionFile ? `✓ ${productionFile.name}` : uploadedDatasetId ? '✓ Dataset Active (Click to Replace)' : 'Select Production Data File'}
                       <input
                         type="file"
                         accept=".csv,.xlsx,.xls"
@@ -1386,21 +1388,52 @@ const SimulatorPage: React.FC = () => {
                         variant="contained"
                         onClick={uploadDataset}
                         disabled={uploadLoading || !productionFile}
-                        startIcon={uploadLoading ? <CircularProgress size={18} color="inherit" /> : <UploadIcon />}
+                        startIcon={
+                          uploadLoading ? (
+                            <CircularProgress size={18} color="inherit" />
+                          ) : uploadedDatasetId && !productionFile ? (
+                            <CheckCircleIcon />
+                          ) : (
+                            <UploadIcon />
+                          )
+                        }
                         sx={{
                           ml: 'auto',
-                          minWidth: 130,
+                          minWidth: 140,
                           fontWeight: 600,
                           backgroundColor:
-                            theme.palette.mode === 'dark' ? '#38BDF8' : 'primary.main',
-                          color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
+                            uploadedDatasetId && !productionFile
+                              ? '#16a34a'
+                              : theme.palette.mode === 'dark'
+                              ? '#38BDF8'
+                              : 'primary.main',
+                          color:
+                            uploadedDatasetId && !productionFile
+                              ? '#FFFFFF'
+                              : theme.palette.mode === 'dark'
+                              ? '#090D16'
+                              : '#FFFFFF',
                           '&.Mui-disabled': {
-                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 76, 129, 0.2)',
-                            color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.38)',
+                            backgroundColor:
+                              uploadedDatasetId && !productionFile
+                                ? 'rgba(22, 163, 74, 0.85)'
+                                : theme.palette.mode === 'dark'
+                                ? 'rgba(56, 189, 248, 0.2)'
+                                : 'rgba(15, 76, 129, 0.2)',
+                            color:
+                              uploadedDatasetId && !productionFile
+                                ? '#FFFFFF'
+                                : theme.palette.mode === 'dark'
+                                ? 'rgba(255, 255, 255, 0.4)'
+                                : 'rgba(0, 0, 0, 0.38)',
                           },
                         }}
                       >
-                        {uploadLoading ? 'Uploading...' : 'Upload'}
+                        {uploadLoading
+                          ? 'Uploading...'
+                          : uploadedDatasetId && !productionFile
+                          ? 'Uploaded ✓'
+                          : 'Upload'}
                       </Button>
                     </Box>
                     <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'textSecondary' }}>
