@@ -226,9 +226,16 @@ const SimulatorPage: React.FC = () => {
           }
         }
 
-        const normalizeFraction = (v: any) => {
+        const parsePosNum = (v: any): number | null => {
+          if (v === '' || v === null || v === undefined) return null
           const n = Number(v)
-          if (!isFinite(n)) return null
+          return (!isNaN(n) && n > 0) ? n : null
+        }
+
+        const normalizeFraction = (v: any) => {
+          if (v === '' || v === null || v === undefined) return null
+          const n = Number(v)
+          if (!isFinite(n) || n <= 0) return null
           let x = n
           if (x > 1) {
             if (x <= 100) x = x / 100
@@ -249,25 +256,25 @@ const SimulatorPage: React.FC = () => {
 
         if (rm && typeof rm === 'object') {
           // Top-level flat fields
-          ip   = rm.initial_pressure ?? rm.pressure ?? rm.initial_pressure_bar ?? rm.pressure_bar ?? null
+          ip   = parsePosNum(rm.initial_pressure ?? rm.pressure ?? rm.initial_pressure_bar ?? rm.pressure_bar)
           por  = rm.porosity ?? rm.porosity_fraction ?? rm.poro ?? null
-          perm = rm.permeability ?? rm.perm ?? rm.permeability_md ?? null
+          perm = parsePosNum(rm.permeability ?? rm.perm ?? rm.permeability_md)
           wsat = rm.water_saturation ?? rm.wat_sat ?? rm.initial_water_saturation ?? null
 
-          areaVal  = rm.area ?? rm.drainage_area ?? null
-          thickVal = rm.thickness ?? rm.net_pay_thickness ?? null
+          areaVal  = parsePosNum(rm.area ?? rm.drainage_area)
+          thickVal = parsePosNum(rm.thickness ?? rm.net_pay_thickness)
 
           // reservoir_geometry section
           if (rm.reservoir_geometry && typeof rm.reservoir_geometry === 'object') {
             const rg = rm.reservoir_geometry
-            areaVal  = areaVal ?? rg.area ?? rg.drainage_area ?? null
-            thickVal = thickVal ?? rg.thickness ?? rg.net_pay_thickness ?? null
+            areaVal  = areaVal ?? parsePosNum(rg.area ?? rg.drainage_area)
+            thickVal = thickVal ?? parsePosNum(rg.thickness ?? rg.net_pay_thickness)
           }
 
           // fluid_properties section
           if (rm.fluid_properties && typeof rm.fluid_properties === 'object') {
             const fp = rm.fluid_properties
-            ip   = ip   ?? fp.initial_pressure ?? fp.pressure ?? null
+            ip   = ip   ?? parsePosNum(fp.initial_pressure ?? fp.pressure)
             wsat = wsat ?? fp.water_saturation ?? fp.waterSat ?? null
           }
 
@@ -275,13 +282,13 @@ const SimulatorPage: React.FC = () => {
           if (rm.rock_properties && typeof rm.rock_properties === 'object') {
             const rp = rm.rock_properties
             por  = por  ?? rp.porosity ?? rp.poro ?? rp.porosity_fraction ?? null
-            perm = perm ?? rp.permeability ?? rp.perm ?? rp.permeability_md ?? null
+            perm = perm ?? parsePosNum(rp.permeability ?? rp.perm ?? rp.permeability_md)
           }
 
           // Also check legacy reservoir section
           if (rm.reservoir && typeof rm.reservoir === 'object') {
             const rv = rm.reservoir
-            ip = ip ?? rv.initial_pressure ?? rv.pressure ?? rv.initial_pressure_bar ?? null
+            ip = ip ?? parsePosNum(rv.initial_pressure ?? rv.pressure ?? rv.initial_pressure_bar)
           }
 
           // Normalize fractions
@@ -293,7 +300,7 @@ const SimulatorPage: React.FC = () => {
           for (const arr of possiblePressureArrays) {
             if (Array.isArray(arr) && arr.length > 0) {
               const v = Number(arr[0])
-              if (!isNaN(v)) { ip = v; break }
+              if (!isNaN(v) && v > 0) { ip = v; break }
             }
           }
         }
@@ -310,12 +317,12 @@ const SimulatorPage: React.FC = () => {
         console.log('[DATASET] Detected params from dataset:', detectedParams, '| rm keys:', rm ? Object.keys(rm) : 'none')
 
         // ── AUTO-APPLY: immediately update Quick Parameter fields ──
-        if (ip !== null) setInitialPressure(Number(ip))
-        if (por !== null) setPorosity(Number((por * 100).toFixed(2)))
-        if (perm !== null) setPermeability(Number(perm))
-        if (wsat !== null) setWaterSaturation(Number((wsat * 100).toFixed(2)))
-        if (areaVal !== null) setDrainageArea(Number(areaVal))
-        if (thickVal !== null) setNetPayThickness(Number(thickVal))
+        if (ip !== null && ip > 0) setInitialPressure(Number(ip))
+        if (por !== null && por > 0) setPorosity(Number((por * 100).toFixed(2)))
+        if (perm !== null && perm > 0) setPermeability(Number(perm))
+        if (wsat !== null && wsat > 0) setWaterSaturation(Number((wsat * 100).toFixed(2)))
+        if (areaVal !== null && areaVal > 0) setDrainageArea(Number(areaVal))
+        if (thickVal !== null && thickVal > 0) setNetPayThickness(Number(thickVal))
 
       } catch (e) {
         console.warn('Failed to fetch dataset params', e)
@@ -370,28 +377,34 @@ const SimulatorPage: React.FC = () => {
         let areaVal: number | null = null
         let thickVal: number | null = null
 
+        const parsePos = (v: any) => {
+          if (v === '' || v === null || v === undefined) return null
+          const n = Number(v)
+          return (!isNaN(n) && n > 0) ? n : null
+        }
+
         if (rm && typeof rm === 'object') {
-          ip = rm.initial_pressure ?? rm.pressure ?? null
+          ip = parsePos(rm.initial_pressure ?? rm.pressure)
           por = rm.porosity ?? rm.poro ?? null
-          perm = rm.permeability ?? rm.perm ?? null
+          perm = parsePos(rm.permeability ?? rm.perm)
           wsat = rm.water_saturation ?? rm.waterSat ?? rm.sw ?? null
-          areaVal = rm.area ?? rm.drainage_area ?? null
-          thickVal = rm.thickness ?? rm.net_pay_thickness ?? null
+          areaVal = parsePos(rm.area ?? rm.drainage_area)
+          thickVal = parsePos(rm.thickness ?? rm.net_pay_thickness)
 
           if (rm.reservoir_geometry && typeof rm.reservoir_geometry === 'object') {
             const rg = rm.reservoir_geometry
-            areaVal = areaVal ?? rg.area ?? rg.drainage_area ?? null
-            thickVal = thickVal ?? rg.thickness ?? rg.net_pay_thickness ?? null
+            areaVal = areaVal ?? parsePos(rg.area ?? rg.drainage_area)
+            thickVal = thickVal ?? parsePos(rg.thickness ?? rg.net_pay_thickness)
           }
           if (rm.fluid_properties && typeof rm.fluid_properties === 'object') {
             const fp = rm.fluid_properties
-            ip = ip ?? fp.initial_pressure ?? fp.pressure ?? null
+            ip = ip ?? parsePos(fp.initial_pressure ?? fp.pressure)
             wsat = wsat ?? fp.water_saturation ?? fp.waterSat ?? null
           }
           if (rm.rock_properties && typeof rm.rock_properties === 'object') {
             const rp = rm.rock_properties
             por = por ?? rp.porosity ?? rp.poro ?? null
-            perm = perm ?? rp.permeability ?? rp.perm ?? null
+            perm = perm ?? parsePos(rp.permeability ?? rp.perm)
           }
         }
 
@@ -414,12 +427,12 @@ const SimulatorPage: React.FC = () => {
         por = norm(por)
         wsat = norm(wsat)
 
-        if (ip !== null) setInitialPressure(Number(ip))
-        if (por !== null) setPorosity(Number((por * 100).toFixed(2)))
-        if (perm !== null) setPermeability(Number(perm))
-        if (wsat !== null) setWaterSaturation(Number((wsat * 100).toFixed(2)))
-        if (areaVal !== null && Number(areaVal) > 0) setDrainageArea(Number(areaVal))
-        if (thickVal !== null && Number(thickVal) > 0) setNetPayThickness(Number(thickVal))
+        if (ip !== null && ip > 0) setInitialPressure(Number(ip))
+        if (por !== null && por > 0) setPorosity(Number((por * 100).toFixed(2)))
+        if (perm !== null && perm > 0) setPermeability(Number(perm))
+        if (wsat !== null && wsat > 0) setWaterSaturation(Number((wsat * 100).toFixed(2)))
+        if (areaVal !== null && areaVal > 0) setDrainageArea(Number(areaVal))
+        if (thickVal !== null && thickVal > 0) setNetPayThickness(Number(thickVal))
 
         setDatasetParams({
           initial_pressure: ip != null ? Number(ip) : null,
@@ -678,9 +691,14 @@ const SimulatorPage: React.FC = () => {
   const effectiveOOIP = React.useMemo(() => {
     const rd = results?.results_data
     if (rd?.ooip) {
-      // If server explicitly flagged missing fields or calculated false
-      if (rd.ooip.is_calculated === false || (rd.ooip.missing_fields && rd.ooip.missing_fields.length > 0)) {
+      if (rd.ooip.is_calculated === true && rd.ooip.ooip_mmbbl != null && !isNaN(Number(rd.ooip.ooip_mmbbl))) {
         return rd.ooip
+      }
+      if (rd.ooip.is_calculated === false || rd.ooip.status === 'missing_inputs' || (rd.ooip.missing_fields && rd.ooip.missing_fields.length > 0)) {
+        return {
+          ...rd.ooip,
+          is_calculated: false,
+        }
       }
       if (rd.ooip.ooip_mmbbl && Number(rd.ooip.ooip_mmbbl) > 0) {
         return rd.ooip
@@ -1311,7 +1329,7 @@ const SimulatorPage: React.FC = () => {
                           value={initialPressure}
                           onChange={(e) => setInitialPressure(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.initial_pressure}
+                          disabled={datasetParams?.initial_pressure != null && Number(datasetParams.initial_pressure) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1325,7 +1343,7 @@ const SimulatorPage: React.FC = () => {
                           value={porosity}
                           onChange={(e) => setPorosity(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.porosity}
+                          disabled={datasetParams?.porosity != null && Number(datasetParams.porosity) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1339,7 +1357,7 @@ const SimulatorPage: React.FC = () => {
                           value={permeability}
                           onChange={(e) => setPermeability(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.permeability}
+                          disabled={datasetParams?.permeability != null && Number(datasetParams.permeability) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1353,7 +1371,7 @@ const SimulatorPage: React.FC = () => {
                           value={waterSaturation}
                           onChange={(e) => setWaterSaturation(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.water_saturation}
+                          disabled={datasetParams?.water_saturation != null && Number(datasetParams.water_saturation) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1367,7 +1385,7 @@ const SimulatorPage: React.FC = () => {
                           value={drainageArea}
                           onChange={(e) => setDrainageArea(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.area}
+                          disabled={datasetParams?.area != null && Number(datasetParams.area) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1381,7 +1399,7 @@ const SimulatorPage: React.FC = () => {
                           value={netPayThickness}
                           onChange={(e) => setNetPayThickness(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
-                          disabled={!!datasetParams?.thickness}
+                          disabled={datasetParams?.thickness != null && Number(datasetParams.thickness) > 0}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1389,31 +1407,47 @@ const SimulatorPage: React.FC = () => {
                     </Grid>
 
                     {datasetParams && (
-                      <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Box>
-                          <Typography variant="subtitle2">Detected dataset parameters:</Typography>
-                          <Typography variant="caption" sx={{ display: 'block' }}>
-                            {datasetParams.initial_pressure != null ? `Initial Pressure: ${datasetParams.initial_pressure}` : 'Initial Pressure: —'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ display: 'block' }}>
-                            {datasetParams.porosity != null ? `Porosity: ${Math.min((datasetParams.porosity * 100), 100).toFixed(2)}%` : 'Porosity: —'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ display: 'block' }}>
-                            {datasetParams.permeability != null ? `Permeability: ${datasetParams.permeability} mD` : 'Permeability: —'}
-                          </Typography>
+                      <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                          <Box>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Detected dataset parameters:</Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Initial Pressure: {datasetParams.initial_pressure != null ? `${datasetParams.initial_pressure} psi` : '—'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Porosity: {datasetParams.porosity != null ? `${Math.min((datasetParams.porosity * 100), 100).toFixed(2)}%` : '—'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Permeability: {datasetParams.permeability != null ? `${datasetParams.permeability} mD` : '—'}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ pt: { xs: 0, sm: 2.5 } }}>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Water Saturation: {datasetParams.water_saturation != null ? `${Math.min((datasetParams.water_saturation * 100), 100).toFixed(2)}%` : '—'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Drainage Area: {datasetParams.area != null ? `${datasetParams.area} acres` : '—'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ display: 'block' }}>
+                              Net Pay Thickness: {datasetParams.thickness != null ? `${datasetParams.thickness} ft` : '—'}
+                            </Typography>
+                          </Box>
                         </Box>
                         <Button
                           variant="outlined"
+                          size="small"
                           onClick={() => {
                             if (datasetParams.initial_pressure) setInitialPressure(Number(datasetParams.initial_pressure))
                             if (datasetParams.porosity) setPorosity(Number((datasetParams.porosity as number) * 100))
                             if (datasetParams.permeability) setPermeability(Number(datasetParams.permeability))
                             if (datasetParams.water_saturation) setWaterSaturation(Number((datasetParams.water_saturation as number) * 100))
-                            alert('Dataset parameters applied to quick parameters')
-                            }}
-                          >
-                            Apply dataset parameters
-                          </Button>
+                            if (datasetParams.area) setDrainageArea(Number(datasetParams.area))
+                            if (datasetParams.thickness) setNetPayThickness(Number(datasetParams.thickness))
+                            alert('All detected dataset parameters applied to quick parameters')
+                          }}
+                        >
+                          Apply dataset parameters
+                        </Button>
                       </Box>
                     )}
                   </CardContent>
@@ -1905,7 +1939,7 @@ const SimulatorPage: React.FC = () => {
                           🛢️ Original Oil In Place (OOIP) & Recovery Factor Estimation
                         </Typography>
 
-                        {effectiveOOIP.is_calculated === false ? (
+                        {effectiveOOIP.is_calculated === false || !effectiveOOIP.ooip_mmbbl || isNaN(Number(effectiveOOIP.ooip_mmbbl)) ? (
                           <Alert
                             severity="warning"
                             variant="outlined"

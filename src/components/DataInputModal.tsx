@@ -64,18 +64,58 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
           setError('Please enter reservoir properties or production data before saving');
           return;
         }
+
+        // Clean reservoir model: strip empty strings, convert valid numbers to floats
+        let cleanModel: Record<string, any> | null = null;
+        if (reservoirData) {
+          cleanModel = {};
+          const parseSection = (section: any) => {
+            if (!section || typeof section !== 'object') return {};
+            const clean: Record<string, any> = {};
+            for (const [k, v] of Object.entries(section)) {
+              if (v !== '' && v !== null && v !== undefined) {
+                const n = Number(v);
+                clean[k] = !isNaN(n) ? n : v;
+              }
+            }
+            return clean;
+          };
+
+          const rp = parseSection(reservoirData.rock_properties);
+          const fp = parseSection(reservoirData.fluid_properties);
+          const rg = parseSection(reservoirData.reservoir_geometry);
+          const rm = parseSection(reservoirData.rock_mechanics);
+
+          if (Object.keys(rp).length > 0) cleanModel.rock_properties = rp;
+          if (Object.keys(fp).length > 0) cleanModel.fluid_properties = fp;
+          if (Object.keys(rg).length > 0) cleanModel.reservoir_geometry = rg;
+          if (Object.keys(rm).length > 0) cleanModel.rock_mechanics = rm;
+
+          // Top-level aliases for universal parser compatibility
+          if (fp.initial_pressure != null) cleanModel.initial_pressure = fp.initial_pressure;
+          if (rp.porosity != null) cleanModel.porosity = rp.porosity;
+          if (rp.permeability != null) cleanModel.permeability = rp.permeability;
+          if (fp.water_saturation != null) cleanModel.water_saturation = fp.water_saturation;
+          if (rg.thickness != null) cleanModel.thickness = rg.thickness;
+          if (rg.area != null) cleanModel.area = rg.area;
+          if (fp.formation_volume_factor != null) cleanModel.formation_volume_factor = fp.formation_volume_factor;
+          if (rp.depth != null) cleanModel.depth = rp.depth;
+          if (rp.temperature != null) cleanModel.temperature = rp.temperature;
+        }
+
         // If production data wasn't entered manually, provide standard 12-month production baseline
+        const defaultPressure = cleanModel?.initial_pressure ? Number(cleanModel.initial_pressure) : 3000;
         const prod = productionData || {
           Days: [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365],
           Oil_bbl: [2500, 2420, 2350, 2280, 2210, 2150, 2090, 2030, 1980, 1930, 1880, 1840],
           Water_bbl: [120, 150, 190, 240, 300, 370, 450, 540, 640, 750, 870, 1000],
           Gas_scf: [1500000, 1450000, 1410000, 1370000, 1320000, 1290000, 1250000, 1220000, 1190000, 1160000, 1130000, 1100000],
-          Pressure_psi: [3000, 2950, 2900, 2850, 2800, 2750, 2710, 2670, 2630, 2590, 2550, 2520],
+          Pressure_psi: [defaultPressure, defaultPressure - 50, defaultPressure - 100, defaultPressure - 150, defaultPressure - 200, defaultPressure - 250, defaultPressure - 290, defaultPressure - 330, defaultPressure - 370, defaultPressure - 410, defaultPressure - 450, defaultPressure - 480],
         };
         // Merge production arrays with reservoir_model key
         dataToSave = {
           ...prod,
-          ...(reservoirData && { reservoir_model: reservoirData }),
+          ...(cleanModel && { reservoir_model: cleanModel }),
         };
       } else {
         setError('Please use file upload for file-based datasets');

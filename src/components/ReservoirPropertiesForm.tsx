@@ -121,13 +121,12 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
 
     if (temp && pressure) {
       const bo = computeBoFromStanding(temp, pressure, oilDensity);
-      if (bo !== null) {
-        setData((prev) => {
-          const newData = { ...prev };
-          if (!newData.fluid_properties) newData.fluid_properties = {};
-          newData.fluid_properties.formation_volume_factor = bo.toString();
-          return newData;
-        });
+      if (bo !== null && data.fluid_properties?.formation_volume_factor !== bo.toString()) {
+        const newData = JSON.parse(JSON.stringify(data));
+        if (!newData.fluid_properties) newData.fluid_properties = {};
+        newData.fluid_properties.formation_volume_factor = bo.toString();
+        setData(newData);
+        onDataChange(newData);
         setBoAutoComputed(true);
       }
     } else {
@@ -172,20 +171,18 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
 
   const handleChange = (path: string, value: string) => {
     const parts = path.split('.');
-    let updatedData: ReservoirProperties | null = null;
-    setData((prev) => {
-      const newData = JSON.parse(JSON.stringify(prev));
-      let current: any = newData;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (!current[parts[i]]) {
-          current[parts[i]] = {};
-        }
-        current = current[parts[i]];
+    const newData: ReservoirProperties = JSON.parse(JSON.stringify(data));
+    let current: any = newData;
+    for (let i = 0; i < parts.length - 1; i++) {
+      if (!current[parts[i]]) {
+        current[parts[i]] = {};
       }
-      current[parts[parts.length - 1]] = value;
-      updatedData = newData;
-      return newData;
-    });
+      current = current[parts[i]];
+    }
+    current[parts[parts.length - 1]] = value;
+
+    setData(newData);
+    onDataChange(newData);
 
     // Clear error if valid
     if (validateField(path, value)) {
@@ -206,10 +203,6 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
         return newErrors;
       });
     }
-
-    if (updatedData) {
-      onDataChange(updatedData);
-    }
   };
 
   const getFieldValue = (path: string): string => {
@@ -222,16 +215,24 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
   };
 
   const hasAtLeastOneField = (): boolean => {
-    const requiredFields = [
+    const allCoreFields = [
       'rock_properties.porosity',
       'rock_properties.permeability',
+      'rock_properties.depth',
+      'rock_properties.temperature',
       'fluid_properties.initial_pressure',
       'fluid_properties.water_saturation',
+      'fluid_properties.oil_viscosity',
+      'fluid_properties.oil_density',
+      'reservoir_geometry.thickness',
+      'reservoir_geometry.area',
+      'reservoir_geometry.well_productivity_index',
+      'rock_mechanics.rock_compressibility',
     ];
 
-    return requiredFields.some((field) => {
+    return allCoreFields.some((field) => {
       const value = getFieldValue(field);
-      return value !== '';
+      return value !== '' && !isNaN(Number(value));
     });
   };
 
