@@ -7,27 +7,58 @@ import { useAuth } from '../context/AuthContext'
 const SENSITIVITY_LIB = '/libs/gas-lift-sensitivity-analyzer-frontend.umd.js'
 const SENSITIVITY_CSS = '/libs/style.css'
 
+function getGlobalLib() {
+  // UMD attaches to global Pt.SensitivityAnalyzer or global SensitivityAnalyzer
+  const g = (window as any).Pt?.SensitivityAnalyzer || (window as any).SensitivityAnalyzer
+  return g && g.default ? g.default : g
+}
+
 const SensitivityPage: React.FC = () => {
   const [loaded, setLoaded] = React.useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
   const { token } = useAuth()
 
+  // Compute the correct sensitivity backend base URL:
+  // Respect VITE_API_URL / VITE_API_BASE_URL if configured,
+  // otherwise if running locally on localhost/127.0.0.1 target localhost:8000,
+  // otherwise default to the production Render backend URL.
+  const rawApiUrl = (import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || '').trim()
+  let apiBase = ''
+  if (rawApiUrl) {
+    apiBase = `${rawApiUrl.replace(/\/+$/, '')}/sensitivity`
+  } else if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+    apiBase = 'http://localhost:8000/api/sensitivity'
+  } else {
+    apiBase = 'https://xcape-backend-com.onrender.com/api/sensitivity'
+  }
+
+  // Sync token whenever it changes or loads from localStorage
+  useEffect(() => {
+    const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null)
+    if (typeof window !== 'undefined') {
+      ;(window as any).__SENSITIVITY_API_BASE__ = apiBase
+      if (activeToken) {
+        ;(window as any).__SENSITIVITY_AUTH_TOKEN__ = activeToken
+      }
+    }
+    const lib = getGlobalLib()
+    if (lib && typeof lib.setAuthToken === 'function' && activeToken) {
+      lib.setAuthToken(activeToken)
+    }
+  }, [token, apiBase])
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
-    // Determine backend API base URL
-    // In development: backend is on localhost:8000; frontend (Vite) is on localhost:3000
-    // In production: both may be on the same domain
-    const apiBase = typeof window !== 'undefined' && window.location.port === '3000'
-      ? 'http://localhost:8000/api/sensitivity'
-      : '/api/sensitivity'
+    const activeToken = token || (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null)
 
-    function getGlobalLib() {
-      // UMD attaches to global Pt.SensitivityAnalyzer or global SensitivityAnalyzer
-      const g = (window as any).Pt?.SensitivityAnalyzer || (window as any).SensitivityAnalyzer
-      return g && g.default ? g.default : g
+    if (typeof window !== 'undefined') {
+      ;(window as any).__SENSITIVITY_API_BASE__ = apiBase
+      if (activeToken) {
+        ;(window as any).__SENSITIVITY_AUTH_TOKEN__ = activeToken
+      }
     }
 
     async function mountLib() {
@@ -35,9 +66,10 @@ const SensitivityPage: React.FC = () => {
       if (!lib) return
       try {
         if (typeof lib.setApiBase === 'function') lib.setApiBase(apiBase)
-        // If XCAPE has an auth token in context, pass it to the embedded lib
-        if (token && typeof lib.setAuthToken === 'function') {
-          lib.setAuthToken(token)
+        // If XCAPE has an auth token in context or storage, pass it to the embedded lib
+        const currentAuth = token || (typeof window !== 'undefined' ? localStorage.getItem('authToken') : null)
+        if (currentAuth && typeof lib.setAuthToken === 'function') {
+          lib.setAuthToken(currentAuth)
         }
 
         if (typeof lib.mount === 'function') {
@@ -96,7 +128,7 @@ const SensitivityPage: React.FC = () => {
       if (script.parentNode) script.parentNode.removeChild(script)
       if (link.parentNode) link.parentNode.removeChild(link)
     }
-  }, [])
+  }, [apiBase])
 
   return (
     <Box sx={{ height: '100%', minHeight: 600, display: 'flex', flexDirection: 'column' }}>
