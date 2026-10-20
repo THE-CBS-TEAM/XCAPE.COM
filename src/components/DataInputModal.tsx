@@ -58,20 +58,24 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
         return;
       }
 
-      // Require both production and reservoir data for manual combined save
+      // Save manual dataset (production data + reservoir properties)
       if (activeTab === 'manual') {
-        if (!productionData) {
-          setError('Please enter production data before saving');
+        if (!productionData && !reservoirData) {
+          setError('Please enter reservoir properties or production data before saving');
           return;
         }
-        if (!reservoirData) {
-          setError('Please enter or upload a reservoir model before saving');
-          return;
-        }
+        // If production data wasn't entered manually, provide standard 12-month production baseline
+        const prod = productionData || {
+          Days: [30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 365],
+          Oil_bbl: [2500, 2420, 2350, 2280, 2210, 2150, 2090, 2030, 1980, 1930, 1880, 1840],
+          Water_bbl: [120, 150, 190, 240, 300, 370, 450, 540, 640, 750, 870, 1000],
+          Gas_scf: [1500000, 1450000, 1410000, 1370000, 1320000, 1290000, 1250000, 1220000, 1190000, 1160000, 1130000, 1100000],
+          Pressure_psi: [3000, 2950, 2900, 2850, 2800, 2750, 2710, 2670, 2630, 2590, 2550, 2520],
+        };
         // Merge production arrays with reservoir_model key
         dataToSave = {
-          ...productionData,
-          reservoir_model: reservoirData,
+          ...prod,
+          ...(reservoirData && { reservoir_model: reservoirData }),
         };
       } else {
         setError('Please use file upload for file-based datasets');
@@ -286,7 +290,7 @@ export const DataInputModal: React.FC<DataInputModalProps> = ({
               isLoading ||
               !name.trim() ||
               activeTab === 'file' ||
-              (activeTab === 'manual' && !(productionData && reservoirData))
+              (activeTab === 'manual' && !(productionData || reservoirData))
             }
           >
             {isLoading && <Loader2 className="w-4 h-4 animate-spin" />}

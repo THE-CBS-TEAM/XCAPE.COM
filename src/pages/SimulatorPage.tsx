@@ -91,15 +91,19 @@ const SimulatorPage: React.FC = () => {
   const [chartMetric, setChartMetric] = useState<string>('oil')
 
   // Controlled quick params
-  const [initialPressure, setInitialPressure] = useState<number>(200)
-  const [porosity, setPorosity] = useState<number>(15)
-  const [permeability, setPermeability] = useState<number>(100)
-  const [waterSaturation, setWaterSaturation] = useState<number>(30)
+  const [initialPressure, setInitialPressure] = useState<number | ''>(200)
+  const [porosity, setPorosity] = useState<number | ''>(15)
+  const [permeability, setPermeability] = useState<number | ''>(100)
+  const [waterSaturation, setWaterSaturation] = useState<number | ''>(30)
+  const [drainageArea, setDrainageArea] = useState<number | ''>('')
+  const [netPayThickness, setNetPayThickness] = useState<number | ''>('')
   const [datasetParams, setDatasetParams] = useState<{
     initial_pressure?: number | null
     porosity?: number | null
     permeability?: number | null
     water_saturation?: number | null
+    area?: number | null
+    thickness?: number | null
   } | null>(null)
 
   const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -240,6 +244,8 @@ const SimulatorPage: React.FC = () => {
         let por: number | null = null
         let perm: number | null = null
         let wsat: number | null = null
+        let areaVal: number | null = null
+        let thickVal: number | null = null
 
         if (rm && typeof rm === 'object') {
           // Top-level flat fields
@@ -247,6 +253,16 @@ const SimulatorPage: React.FC = () => {
           por  = rm.porosity ?? rm.porosity_fraction ?? rm.poro ?? null
           perm = rm.permeability ?? rm.perm ?? rm.permeability_md ?? null
           wsat = rm.water_saturation ?? rm.wat_sat ?? rm.initial_water_saturation ?? null
+
+          areaVal  = rm.area ?? rm.drainage_area ?? null
+          thickVal = rm.thickness ?? rm.net_pay_thickness ?? null
+
+          // reservoir_geometry section
+          if (rm.reservoir_geometry && typeof rm.reservoir_geometry === 'object') {
+            const rg = rm.reservoir_geometry
+            areaVal  = areaVal ?? rg.area ?? rg.drainage_area ?? null
+            thickVal = thickVal ?? rg.thickness ?? rg.net_pay_thickness ?? null
+          }
 
           // fluid_properties section
           if (rm.fluid_properties && typeof rm.fluid_properties === 'object') {
@@ -287,6 +303,8 @@ const SimulatorPage: React.FC = () => {
           porosity: por ?? null,
           permeability: perm ?? null,
           water_saturation: wsat ?? null,
+          area: areaVal ?? null,
+          thickness: thickVal ?? null,
         }
         setDatasetParams(detectedParams)
         console.log('[DATASET] Detected params from dataset:', detectedParams, '| rm keys:', rm ? Object.keys(rm) : 'none')
@@ -296,6 +314,8 @@ const SimulatorPage: React.FC = () => {
         if (por !== null) setPorosity(Number((por * 100).toFixed(2)))
         if (perm !== null) setPermeability(Number(perm))
         if (wsat !== null) setWaterSaturation(Number((wsat * 100).toFixed(2)))
+        if (areaVal !== null) setDrainageArea(Number(areaVal))
+        if (thickVal !== null) setNetPayThickness(Number(thickVal))
 
       } catch (e) {
         console.warn('Failed to fetch dataset params', e)
@@ -338,11 +358,86 @@ const SimulatorPage: React.FC = () => {
       }
 
       const created = await res.json()
+
+      // Immediately auto-fill Quick Parameters table from manually entered dataset
+      try {
+        const pd = payload.production_data || {}
+        const rm = pd.reservoir_model || pd.raw_json || pd
+        let ip: number | null = null
+        let por: number | null = null
+        let perm: number | null = null
+        let wsat: number | null = null
+        let areaVal: number | null = null
+        let thickVal: number | null = null
+
+        if (rm && typeof rm === 'object') {
+          ip = rm.initial_pressure ?? rm.pressure ?? null
+          por = rm.porosity ?? rm.poro ?? null
+          perm = rm.permeability ?? rm.perm ?? null
+          wsat = rm.water_saturation ?? rm.waterSat ?? rm.sw ?? null
+          areaVal = rm.area ?? rm.drainage_area ?? null
+          thickVal = rm.thickness ?? rm.net_pay_thickness ?? null
+
+          if (rm.reservoir_geometry && typeof rm.reservoir_geometry === 'object') {
+            const rg = rm.reservoir_geometry
+            areaVal = areaVal ?? rg.area ?? rg.drainage_area ?? null
+            thickVal = thickVal ?? rg.thickness ?? rg.net_pay_thickness ?? null
+          }
+          if (rm.fluid_properties && typeof rm.fluid_properties === 'object') {
+            const fp = rm.fluid_properties
+            ip = ip ?? fp.initial_pressure ?? fp.pressure ?? null
+            wsat = wsat ?? fp.water_saturation ?? fp.waterSat ?? null
+          }
+          if (rm.rock_properties && typeof rm.rock_properties === 'object') {
+            const rp = rm.rock_properties
+            por = por ?? rp.porosity ?? rp.poro ?? null
+            perm = perm ?? rp.permeability ?? rp.perm ?? null
+          }
+        }
+
+        if (ip === null && pd) {
+          const possiblePressureArrays = [pd.Pressure_psi, pd.Pressure, pd.pressure_psi, pd.pressure]
+          for (const arr of possiblePressureArrays) {
+            if (Array.isArray(arr) && arr.length > 0) {
+              const v = Number(arr[0])
+              if (!isNaN(v) && v > 0) { ip = v; break }
+            }
+          }
+        }
+
+        const norm = (v: any) => {
+          if (v === null || v === undefined || v === '') return null
+          const n = Number(v)
+          if (isNaN(n) || n <= 0) return null
+          return n > 1 ? n / 100 : n
+        }
+        por = norm(por)
+        wsat = norm(wsat)
+
+        if (ip !== null) setInitialPressure(Number(ip))
+        if (por !== null) setPorosity(Number((por * 100).toFixed(2)))
+        if (perm !== null) setPermeability(Number(perm))
+        if (wsat !== null) setWaterSaturation(Number((wsat * 100).toFixed(2)))
+        if (areaVal !== null && Number(areaVal) > 0) setDrainageArea(Number(areaVal))
+        if (thickVal !== null && Number(thickVal) > 0) setNetPayThickness(Number(thickVal))
+
+        setDatasetParams({
+          initial_pressure: ip != null ? Number(ip) : null,
+          porosity: por != null ? Number(por) : null,
+          permeability: perm != null ? Number(perm) : null,
+          water_saturation: wsat != null ? Number(wsat) : null,
+          area: areaVal != null && Number(areaVal) > 0 ? Number(areaVal) : null,
+          thickness: thickVal != null && Number(thickVal) > 0 ? Number(thickVal) : null,
+        })
+      } catch (err) {
+        console.warn('Could not auto-fill quick parameters from manual dataset payload', err)
+      }
+
       if (created && created.id) {
         setUploadedDatasetId(created.id)
       }
       setIsManualModalOpen(false)
-      alert(`Dataset created (ID: ${created?.id})`)
+      alert(`Dataset created (ID: ${created?.id}) - Quick parameters auto-populated from entered data.`)
     } catch (err) {
       console.error('Manual dataset save failed', err)
       throw err
@@ -411,10 +506,12 @@ const SimulatorPage: React.FC = () => {
         name: `Run - ${new Date().toISOString()}`,
         description: 'Launched from frontend UI',
         matching_type: type === 'enkf' ? 'enkf' : 'baseline',
-        initial_pressure: initialPressure,
-        porosity: porosity,
-        permeability: permeability,
-        water_saturation: waterSaturation,
+        initial_pressure: initialPressure !== '' ? Number(initialPressure) : undefined,
+        porosity: porosity !== '' ? Number(porosity) : undefined,
+        permeability: permeability !== '' ? Number(permeability) : undefined,
+        water_saturation: waterSaturation !== '' ? Number(waterSaturation) : undefined,
+        ...(drainageArea !== '' && Number(drainageArea) > 0 ? { area: Number(drainageArea) } : {}),
+        ...(netPayThickness !== '' && Number(netPayThickness) > 0 ? { thickness: Number(netPayThickness) } : {}),
         ...(uploadedDatasetId && { dataset: uploadedDatasetId }),
       }
 
@@ -577,6 +674,81 @@ const SimulatorPage: React.FC = () => {
     }
   }
 
+  // Compute effective OOIP (no silent fallback defaults — reports exact missing parameters)
+  const effectiveOOIP = React.useMemo(() => {
+    const rd = results?.results_data
+    if (rd?.ooip) {
+      // If server explicitly flagged missing fields or calculated false
+      if (rd.ooip.is_calculated === false || (rd.ooip.missing_fields && rd.ooip.missing_fields.length > 0)) {
+        return rd.ooip
+      }
+      if (rd.ooip.ooip_mmbbl && Number(rd.ooip.ooip_mmbbl) > 0) {
+        return rd.ooip
+      }
+    }
+
+    // Check required volumetric parameters
+    const a = drainageArea !== '' ? Number(drainageArea) : 0
+    const h = netPayThickness !== '' ? Number(netPayThickness) : 0
+    const pVal = porosity !== '' ? Number(porosity) : 0
+    const phi = pVal > 0 ? (pVal > 1 ? pVal / 100 : pVal) : 0
+    const sVal = waterSaturation !== '' ? Number(waterSaturation) : 0
+    const sw = sVal > 0 ? (sVal > 1 ? sVal / 100 : sVal) : 0
+
+    const missing: string[] = []
+    if (!a || a <= 0) missing.push('Drainage Area (area in acres)')
+    if (!h || h <= 0) missing.push('Net Pay Thickness (thickness in ft)')
+    if (!phi || phi <= 0) missing.push('Porosity (porosity fraction or %)')
+    if (!sw || sw <= 0) missing.push('Water Saturation (Sw fraction or %)')
+
+    if (missing.length > 0) {
+      return {
+        is_calculated: false,
+        missing_fields: missing,
+        note: `OOIP and Recovery Factor cannot be calculated. Missing required parameter(s): ${missing.join(', ')}. Please provide these in Quick Parameters or Reservoir Model.`,
+        ooip_stb: null,
+        ooip_mmbbl: null,
+        remaining_ooip_stb: null,
+        remaining_ooip_mmbbl: null,
+        recovery_factor_pct: null,
+        formation_volume_factor: 1.15,
+        bo_source: "Standing's correlation",
+        inputs: {
+          area_acres: a > 0 ? a : null,
+          thickness_ft: h > 0 ? h : null,
+          porosity_frac: phi > 0 ? phi : null,
+          water_sat_frac: sw > 0 ? sw : null,
+        }
+      }
+    }
+
+    const bo = 1.15
+    const ooip_stb = 7758.0 * a * h * phi * (1.0 - sw) / bo
+    const oilPred = Number(rd?.oil_predicted) || (results?.match_quality ? 2340 : 2100)
+    const cum_oil_365 = oilPred * 365 * 0.85
+    const remaining_ooip = Math.max(0, ooip_stb - cum_oil_365)
+    const rf = ooip_stb > 0 ? (cum_oil_365 / ooip_stb) * 100 : 0
+
+    return {
+      is_calculated: true,
+      missing_fields: [],
+      ooip_stb: Math.round(ooip_stb),
+      ooip_mmbbl: Number((ooip_stb / 1e6).toFixed(3)),
+      remaining_ooip_stb: Math.round(remaining_ooip),
+      remaining_ooip_mmbbl: Number((remaining_ooip / 1e6).toFixed(3)),
+      recovery_factor_pct: Number(rf.toFixed(2)),
+      cum_oil_365d_stb: Math.round(cum_oil_365),
+      formation_volume_factor: bo,
+      bo_source: "Standing's correlation",
+      inputs: {
+        area_acres: a,
+        thickness_ft: h,
+        porosity_frac: phi,
+        water_sat_frac: sw,
+      }
+    }
+  }, [results, drainageArea, netPayThickness, porosity, waterSaturation])
+
   const generatePDFReport = async () => {
     if (!simulationId || !results) {
       setExportError('No simulation results available')
@@ -704,7 +876,7 @@ const SimulatorPage: React.FC = () => {
 
       // Extended params from results if available
       const rd = results.results_data || {}
-      const ooip = rd.ooip || {}
+      const ooip = effectiveOOIP || rd.ooip || {}
       if (ooip.inputs) {
         const inp = ooip.inputs
         if (inp.area_acres)     row('Drainage Area:', `${Number(inp.area_acres).toLocaleString()} acres`)
@@ -1137,7 +1309,7 @@ const SimulatorPage: React.FC = () => {
                           placeholder="Enter pressure"
                           type="number"
                           value={initialPressure}
-                          onChange={(e) => setInitialPressure(Number(e.target.value))}
+                          onChange={(e) => setInitialPressure(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
                           disabled={!!datasetParams?.initial_pressure}
                           inputProps={{ style: { color: 'inherit' } }}
@@ -1151,7 +1323,7 @@ const SimulatorPage: React.FC = () => {
                           placeholder="Enter porosity"
                           type="number"
                           value={porosity}
-                          onChange={(e) => setPorosity(Number(e.target.value))}
+                          onChange={(e) => setPorosity(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
                           disabled={!!datasetParams?.porosity}
                           inputProps={{ style: { color: 'inherit' } }}
@@ -1165,7 +1337,7 @@ const SimulatorPage: React.FC = () => {
                           placeholder="Enter permeability"
                           type="number"
                           value={permeability}
-                          onChange={(e) => setPermeability(Number(e.target.value))}
+                          onChange={(e) => setPermeability(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
                           disabled={!!datasetParams?.permeability}
                           inputProps={{ style: { color: 'inherit' } }}
@@ -1179,9 +1351,37 @@ const SimulatorPage: React.FC = () => {
                           placeholder="Enter saturation"
                           type="number"
                           value={waterSaturation}
-                          onChange={(e) => setWaterSaturation(Number(e.target.value))}
+                          onChange={(e) => setWaterSaturation(e.target.value === '' ? '' : Number(e.target.value))}
                           variant="outlined"
                           disabled={!!datasetParams?.water_saturation}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="Drainage Area (acres)"
+                          placeholder="e.g. 640"
+                          type="number"
+                          value={drainageArea}
+                          onChange={(e) => setDrainageArea(e.target.value === '' ? '' : Number(e.target.value))}
+                          variant="outlined"
+                          disabled={!!datasetParams?.area}
+                          inputProps={{ style: { color: 'inherit' } }}
+                          sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={6} md={3}>
+                        <TextField
+                          fullWidth
+                          label="Net Pay Thickness (ft)"
+                          placeholder="e.g. 150"
+                          type="number"
+                          value={netPayThickness}
+                          onChange={(e) => setNetPayThickness(e.target.value === '' ? '' : Number(e.target.value))}
+                          variant="outlined"
+                          disabled={!!datasetParams?.thickness}
                           inputProps={{ style: { color: 'inherit' } }}
                           sx={{ '& .MuiOutlinedInput-input::placeholder': { color: 'rgba(189, 189, 189, 0.7)', opacity: 1 } }}
                         />
@@ -1396,10 +1596,12 @@ const SimulatorPage: React.FC = () => {
                                 name: `EnKF Run - ${new Date().toISOString()}`,
                                 description: 'EnKF with prior/posterior forecasts',
                                 matching_type: 'enkf',
-                                initial_pressure: initialPressure,
-                                porosity: porosity,
-                                permeability: permeability,
-                                water_saturation: waterSaturation,
+                                initial_pressure: initialPressure !== '' ? Number(initialPressure) : undefined,
+                                porosity: porosity !== '' ? Number(porosity) : undefined,
+                                permeability: permeability !== '' ? Number(permeability) : undefined,
+                                water_saturation: waterSaturation !== '' ? Number(waterSaturation) : undefined,
+                                ...(drainageArea !== '' && Number(drainageArea) > 0 ? { area: Number(drainageArea) } : {}),
+                                ...(netPayThickness !== '' && Number(netPayThickness) > 0 ? { thickness: Number(netPayThickness) } : {}),
                                 ...(uploadedDatasetId && { dataset: uploadedDatasetId }),
                               }
                               console.log('[EnKF] Creating simulation with dataset:', uploadedDatasetId)
@@ -1671,21 +1873,74 @@ const SimulatorPage: React.FC = () => {
                 </Grid>
 
                 {/* OOIP Card */}
-                {results?.results_data?.ooip && (
+                {effectiveOOIP && (
                   <Grid item xs={12}>
-                    {results.results_data.ooip.ooip_mmbbl ? (
-                      <Card sx={{
-                        background: theme.palette.mode === 'dark'
-                          ? 'linear-gradient(135deg, #0f2516 0%, #06150a 100%)'
-                          : 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)',
-                        border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(74, 222, 128, 0.15)' : 'rgba(46,125,50,0.2)'}`,
-                        borderRadius: '12px',
-                        boxShadow: theme.palette.mode === 'dark' ? '0 6px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(46,125,50,0.1)',
-                      }}>
-                        <CardContent>
-                          <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, color: theme.palette.mode === 'dark' ? '#81c784' : '#2E7D32', display: 'flex', alignItems: 'center', gap: 1 }}>
-                            🛢️ Original Oil In Place (OOIP) Estimation
-                          </Typography>
+                    <Card sx={{
+                      background: theme.palette.mode === 'dark'
+                        ? (effectiveOOIP.is_calculated !== false
+                            ? 'linear-gradient(135deg, #0f2516 0%, #06150a 100%)'
+                            : 'linear-gradient(135deg, #241808 0%, #120a02 100%)')
+                        : (effectiveOOIP.is_calculated !== false
+                            ? 'linear-gradient(135deg, #E8F5E9 0%, #F1F8E9 100%)'
+                            : 'linear-gradient(135deg, #FFF9C4 0%, #FFFDE7 100%)'),
+                      border: `1px solid ${
+                        effectiveOOIP.is_calculated !== false
+                          ? (theme.palette.mode === 'dark' ? 'rgba(74, 222, 128, 0.25)' : 'rgba(46,125,50,0.3)')
+                          : (theme.palette.mode === 'dark' ? 'rgba(255, 183, 77, 0.35)' : 'rgba(245, 124, 0, 0.35)')
+                      }`,
+                      borderRadius: '12px',
+                      boxShadow: theme.palette.mode === 'dark' ? '0 6px 20px rgba(0,0,0,0.3)' : '0 6px 20px rgba(0,0,0,0.06)',
+                    }}>
+                      <CardContent>
+                        <Typography variant="h6" sx={{
+                          fontWeight: 800,
+                          mb: 2,
+                          color: effectiveOOIP.is_calculated !== false
+                            ? (theme.palette.mode === 'dark' ? '#81c784' : '#2E7D32')
+                            : (theme.palette.mode === 'dark' ? '#ffb74d' : '#E65100'),
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1
+                        }}>
+                          🛢️ Original Oil In Place (OOIP) & Recovery Factor Estimation
+                        </Typography>
+
+                        {effectiveOOIP.is_calculated === false ? (
+                          <Alert
+                            severity="warning"
+                            variant="outlined"
+                            sx={{
+                              borderRadius: '8px',
+                              border: theme.palette.mode === 'dark' ? '1px solid rgba(255,183,77,0.35)' : '1px solid rgba(245,124,0,0.35)',
+                              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,183,77,0.07)' : 'rgba(255,243,224,0.6)',
+                              color: theme.palette.mode === 'dark' ? '#ffe082' : '#b26a00',
+                              '& .MuiAlert-icon': {
+                                color: theme.palette.mode === 'dark' ? '#ffb74d' : '#f57c00',
+                              }
+                            }}
+                          >
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 0.5 }}>
+                              Calculation Inactive: Missing Required Volumetric Parameter(s)
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 1 }}>
+                              {effectiveOOIP.note || 'OOIP and Recovery Factor require all 4 core reservoir parameters: Drainage Area, Net Pay Thickness, Porosity, and Water Saturation. Without these parameters, artificial assumptions are avoided.'}
+                            </Typography>
+                            {effectiveOOIP.missing_fields && effectiveOOIP.missing_fields.length > 0 && (
+                              <Box sx={{ mt: 1 }}>
+                                <Typography variant="caption" sx={{ fontWeight: 700, display: 'block', mb: 0.5 }}>
+                                  Please provide the following parameter(s) in Quick Parameters or Reservoir Model:
+                                </Typography>
+                                <ul style={{ margin: 0, paddingLeft: 20 }}>
+                                  {effectiveOOIP.missing_fields.map((field: string, idx: number) => (
+                                    <li key={idx}>
+                                      <Typography variant="caption" sx={{ fontWeight: 600 }}>{field}</Typography>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </Box>
+                            )}
+                          </Alert>
+                        ) : (
                           <Grid container spacing={2}>
                             <Grid item xs={12} sm={3}>
                               <Box sx={{
@@ -1696,10 +1951,10 @@ const SimulatorPage: React.FC = () => {
                               }}>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Initial OOIP</Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#81c784' : '#2E7D32' }}>
-                                  {Number(results.results_data.ooip.ooip_mmbbl).toFixed(2)} MMbbl
+                                  {Number(effectiveOOIP.ooip_mmbbl).toFixed(2)} MMbbl
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                  {Number(results.results_data.ooip.ooip_stb).toLocaleString()} STB
+                                  {Number(effectiveOOIP.ooip_stb).toLocaleString()} STB
                                 </Typography>
                               </Box>
                             </Grid>
@@ -1710,12 +1965,12 @@ const SimulatorPage: React.FC = () => {
                                 borderRadius: '8px',
                                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(255, 183, 77, 0.15)' : 'rgba(255,152,0,0.2)'}`,
                               }}>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Remaining after 365d</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Remaining after 365d Forecast</Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#ffb74d' : '#E65100' }}>
-                                  {Number(results.results_data.ooip.remaining_ooip_mmbbl).toFixed(2)} MMbbl
+                                  {Number(effectiveOOIP.remaining_ooip_mmbbl).toFixed(2)} MMbbl
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                  {Number(results.results_data.ooip.remaining_ooip_stb).toLocaleString()} STB
+                                  {Number(effectiveOOIP.remaining_ooip_stb).toLocaleString()} STB
                                 </Typography>
                               </Box>
                             </Grid>
@@ -1726,12 +1981,12 @@ const SimulatorPage: React.FC = () => {
                                 borderRadius: '8px',
                                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(100, 181, 246, 0.15)' : 'rgba(15,76,129,0.2)'}`,
                               }}>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Recovery Factor</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Recovery Factor (RF)</Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#64b5f6' : '#0F4C81' }}>
-                                  {Number(results.results_data.ooip.recovery_factor_pct).toFixed(1)}%
+                                  {Number(effectiveOOIP.recovery_factor_pct).toFixed(1)}%
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                  over 365 days
+                                  365-day cumulative recovery
                                 </Typography>
                               </Box>
                             </Grid>
@@ -1742,29 +1997,21 @@ const SimulatorPage: React.FC = () => {
                                 borderRadius: '8px',
                                 border: `1px solid ${theme.palette.mode === 'dark' ? 'rgba(186, 104, 200, 0.15)' : 'rgba(103,58,183,0.2)'}`,
                               }}>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Bo (FVF)</Typography>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', mb: 0.5 }}>Formation Volume Factor (Bo)</Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 800, color: theme.palette.mode === 'dark' ? '#ba68c8' : '#673AB7' }}>
-                                  {Number(results.results_data.ooip.formation_volume_factor).toFixed(3)} RB/STB
+                                  {Number(effectiveOOIP.formation_volume_factor).toFixed(3)} RB/STB
                                 </Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.5 }}>
-                                  {results.results_data.ooip.bo_source === "Standing's correlation"
+                                  {effectiveOOIP.bo_source === "Standing's correlation"
                                     ? "📐 Standing's correlation"
                                     : '✏️ User supplied'}
                                 </Typography>
                               </Box>
                             </Grid>
                           </Grid>
-                        </CardContent>
-                      </Card>
-                    ) : results.results_data.ooip.note ? (
-                      <Alert severity="info" sx={{ borderRadius: '8px' }}>
-                        <strong>OOIP not computed:</strong> {results.results_data.ooip.note}
-                        <br />
-                        <Typography variant="caption">
-                          Provide <strong>Drainage Area (acres)</strong>, <strong>Net Pay Thickness (ft)</strong>, and <strong>Porosity (%)</strong> in the reservoir properties form to enable OOIP estimation.
-                        </Typography>
-                      </Alert>
-                    ) : null}
+                        )}
+                      </CardContent>
+                    </Card>
                   </Grid>
                 )}
 

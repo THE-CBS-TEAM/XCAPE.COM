@@ -83,7 +83,7 @@ const UserGuidePage: React.FC = () => {
         {/* Guide Image */}
         <Box
           component="img"
-          src="/image8.png"
+          src="https://images.pexels.com/photos/4883682/pexels-photo-4883682.jpeg?auto=compress&cs=tinysrgb&w=1600"
           alt="XCAPE User Guide"
           sx={{
             maxWidth: '100%',

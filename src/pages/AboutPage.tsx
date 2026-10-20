@@ -101,7 +101,7 @@ const AboutPage: React.FC = () => {
           {/* Project Image */}
           <Box
             component="img"
-            src="/image1.png"
+            src="https://images.unsplash.com/photo-1516937941344-00b4e0337589?auto=format&fit=crop&w=1600&q=80"
             alt="XCAPE Project Overview"
             sx={{
               mt: 4,

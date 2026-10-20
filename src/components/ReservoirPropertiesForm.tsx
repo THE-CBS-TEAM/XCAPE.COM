@@ -172,8 +172,9 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
 
   const handleChange = (path: string, value: string) => {
     const parts = path.split('.');
+    let updatedData: ReservoirProperties | null = null;
     setData((prev) => {
-      const newData = { ...prev };
+      const newData = JSON.parse(JSON.stringify(prev));
       let current: any = newData;
       for (let i = 0; i < parts.length - 1; i++) {
         if (!current[parts[i]]) {
@@ -182,6 +183,7 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
         current = current[parts[i]];
       }
       current[parts[parts.length - 1]] = value;
+      updatedData = newData;
       return newData;
     });
 
@@ -205,7 +207,9 @@ export const ReservoirPropertiesForm: React.FC<ReservoirPropertiesFormProps> = (
       });
     }
 
-    onDataChange(data);
+    if (updatedData) {
+      onDataChange(updatedData);
+    }
   };
 
   const getFieldValue = (path: string): string => {

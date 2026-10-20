@@ -33,7 +33,7 @@ const concepts: Concept[] = [
     fullDesc:
       'Reservoir simulation is a mathematical modeling technique used to predict fluid flow behavior in oil and gas reservoirs. It involves solving partial differential equations that describe fluid movement through porous rocks, accounting for rock properties, fluid properties, and boundary conditions.',
     icon: '⚙️',
-    image: '/image1.png',
+    image: 'https://images.pexels.com/photos/35224901/pexels-photo-35224901.jpeg?auto=compress&cs=tinysrgb&w=1600',
   },
   {
     id: 2,
@@ -42,7 +42,7 @@ const concepts: Concept[] = [
     fullDesc:
       'History matching is the process of adjusting reservoir model parameters to match observed production data from the field. This calibration ensures that the model accurately represents the real reservoir and can provide reliable forecasts for future production scenarios.',
     icon: '📊',
-    image: '/image2.png',
+    image: 'https://images.pexels.com/photos/414936/pexels-photo-414936.jpeg?auto=compress&cs=tinysrgb&w=1600',
   },
   {
     id: 3,
@@ -51,7 +51,7 @@ const concepts: Concept[] = [
     fullDesc:
       'The Ensemble Kalman Filter (EnKF) is an advanced statistical algorithm that automates the history matching process. It uses multiple simulations (ensemble) to estimate model parameters while quantifying prediction uncertainty, providing both best estimates and confidence intervals.',
     icon: '🔄',
-    image: '/image7.png',
+    image: 'https://images.pexels.com/photos/247763/pexels-photo-247763.jpeg?auto=compress&cs=tinysrgb&w=1600',
   },
   {
     id: 4,

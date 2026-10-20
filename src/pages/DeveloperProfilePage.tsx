@@ -233,7 +233,7 @@ export const DeveloperProfilePage: React.FC = () => {
                   variant="contained"
                   size="small"
                   startIcon={<GlobeIcon />}
-                  href="https://xcape-kshk.onrender.com/"
+                  href="https://xcape-com.onrender.com/"
                   target="_blank"
                   rel="noopener noreferrer"
                   sx={{

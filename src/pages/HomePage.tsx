@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Box, Container, Typography, Button, Grid, Chip } from '@mui/material'
+import { Box, Container, Typography, Button, Grid, Chip, useTheme } from '@mui/material'
 import {
   ArrowForward as ArrowForwardIcon,
   KeyboardArrowDown as KeyboardArrowDownIcon,
@@ -25,39 +25,48 @@ import {
 import { useNavigate } from 'react-router-dom'
 
 /* ================================================================== */
-/*  Palette — deep petroleum control-room dark theme                  */
+/*  Theme-adaptive Palette (Dark / Light blend support)               */
 /* ================================================================== */
-const BG = '#04090F'
-const BG_ALT = '#061019'
-const GOLD = '#F4B400'
-const GOLD_LIGHT = '#FFD873'
-const TEAL = '#1F7A8C'
-const NAVY = '#0F4C81'
-const TEXT = 'rgba(255,255,255,0.92)'
-const TEXT_DIM = 'rgba(255,255,255,0.62)'
-const TEXT_DIMMER = 'rgba(255,255,255,0.40)'
-const LINE = 'rgba(255,255,255,0.08)'
+const useHomeTheme = () => {
+  const theme = useTheme()
+  const isDark = theme.palette.mode === 'dark'
+  return {
+    theme,
+    isDark,
+    BG: isDark ? '#04090F' : '#F8FAFC',
+    BG_ALT: isDark ? '#061019' : '#FFFFFF',
+    CARD_BG: isDark ? 'rgba(6, 16, 25, 0.75)' : '#FFFFFF',
+    TEXT: isDark ? 'rgba(255,255,255,0.92)' : '#0F172A',
+    TEXT_DIM: isDark ? 'rgba(255,255,255,0.68)' : '#334155',
+    TEXT_DIMMER: isDark ? 'rgba(255,255,255,0.45)' : '#64748B',
+    LINE: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.09)',
+    GOLD: isDark ? '#F4B400' : '#D97706',
+    GOLD_LIGHT: isDark ? '#FFD873' : '#F59E0B',
+    TEAL: isDark ? '#1F7A8C' : '#0D9488',
+    NAVY: isDark ? '#0F4C81' : '#1D4ED8',
+  }
+}
 
 /* ================================================================== */
 /*  Real petroleum field imagery (Pexels / Unsplash, verified)        */
 /* ================================================================== */
 const IMG = {
   offshore:
-    'https://images.pexels.com/photos/30445637/pexels-photo-30445637.jpeg?auto=compress&cs=tinysrgb&w=1920',
+    'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80',
   offshoreAlt:
-    'https://images.pexels.com/photos/35224901/pexels-photo-35224901.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    'https://images.pexels.com/photos/247763/pexels-photo-247763.jpeg?auto=compress&cs=tinysrgb&w=1600',
   pumpjack:
-    'https://images.pexels.com/photos/7392237/pexels-photo-7392237.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    'https://images.unsplash.com/photo-1516937941344-00b4e0337589?auto=format&fit=crop&w=1600&q=80',
   refinery:
     'https://images.pexels.com/photos/4883682/pexels-photo-4883682.jpeg?auto=compress&cs=tinysrgb&w=1600',
   drilling:
     'https://images.pexels.com/photos/414936/pexels-photo-414936.jpeg?auto=compress&cs=tinysrgb&w=1600',
   pipeline:
-    'https://images.unsplash.com/photo-1581094794329-c8112a89af12?auto=format&fit=crop&w=1600&q=80',
+    'https://images.pexels.com/photos/2760241/pexels-photo-2760241.jpeg?auto=compress&cs=tinysrgb&w=1600',
   earth:
-    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80',
+    'https://images.pexels.com/photos/35224901/pexels-photo-35224901.jpeg?auto=compress&cs=tinysrgb&w=1600',
   industrial:
-    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=1600&q=80',
+    'https://images.pexels.com/photos/2166711/pexels-photo-2166711.jpeg?auto=compress&cs=tinysrgb&w=1600',
 }
 
 /* ================================================================== */
@@ -139,7 +148,9 @@ const SectionHeading: React.FC<{
   title: React.ReactNode
   subtitle?: string
   align?: 'center' | 'left'
-}> = ({ eyebrow, title, subtitle, align = 'center' }) => (
+}> = ({ eyebrow, title, subtitle, align = 'center' }) => {
+  const { TEXT, TEXT_DIM, GOLD } = useHomeTheme()
+  return (
   <Box
     sx={{
       textAlign: align,
@@ -194,12 +205,14 @@ const SectionHeading: React.FC<{
       </Typography>
     )}
   </Box>
-)
+  )
+}
 
 /* ================================================================== */
 /*  Scroll progress bar                                                */
 /* ================================================================== */
 const ScrollProgress: React.FC = () => {
+  const { GOLD, GOLD_LIGHT, TEAL } = useHomeTheme()
   const [p, setP] = useState(0)
   useEffect(() => {
     const onScroll = () => {
@@ -239,6 +252,7 @@ const ScrollProgress: React.FC = () => {
 /*  Live telemetry widget — floating in the hero                       */
 /* ================================================================== */
 const TelemetryCard: React.FC = () => {
+  const { isDark, TEXT, TEXT_DIM, TEXT_DIMMER, LINE, GOLD, GOLD_LIGHT, TEAL } = useHomeTheme()
   const [tick, setTick] = useState(0)
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 2200)
@@ -257,11 +271,14 @@ const TelemetryCard: React.FC = () => {
         borderRadius: 3,
         overflow: 'hidden',
         p: 2.5,
-        background:
-          'linear-gradient(160deg, rgba(15,76,129,0.55) 0%, rgba(4,9,15,0.85) 100%)',
+        background: isDark
+          ? 'linear-gradient(160deg, rgba(15,76,129,0.55) 0%, rgba(4,9,15,0.85) 100%)'
+          : 'linear-gradient(160deg, rgba(239,246,255,0.95) 0%, rgba(255,255,255,0.98) 100%)',
         backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)',
+        border: `1px solid ${LINE}`,
+        boxShadow: isDark
+          ? '0 40px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)'
+          : '0 20px 45px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.9)',
         '&::before': {
           content: '""',
           position: 'absolute',
@@ -349,8 +366,8 @@ const TelemetryCard: React.FC = () => {
             sx={{
               p: 1.5,
               borderRadius: 1.5,
-              border: '1px solid rgba(255,255,255,0.08)',
-              backgroundColor: 'rgba(255,255,255,0.03)',
+              border: `1px solid ${LINE}`,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
@@ -378,8 +395,8 @@ const TelemetryCard: React.FC = () => {
             sx={{
               p: 1.5,
               borderRadius: 1.5,
-              border: '1px solid rgba(255,255,255,0.08)',
-              backgroundColor: 'rgba(255,255,255,0.03)',
+              border: `1px solid ${LINE}`,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.7)',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
@@ -418,7 +435,7 @@ const TelemetryCard: React.FC = () => {
           sx={{
             height: 4,
             borderRadius: 2,
-            backgroundColor: 'rgba(255,255,255,0.08)',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.08)',
             overflow: 'hidden',
           }}
         >
@@ -444,6 +461,7 @@ const TelemetryCard: React.FC = () => {
 /*  Animated production plot (history match)                          */
 /* ================================================================== */
 const ProductionChart: React.FC = () => {
+  const { isDark, TEXT_DIM, TEXT_DIMMER, LINE, GOLD, TEAL } = useHomeTheme()
   const ref = useRef<HTMLDivElement>(null)
   const [drawn, setDrawn] = useState(false)
   useEffect(() => {
@@ -483,9 +501,11 @@ const ProductionChart: React.FC = () => {
         position: 'relative',
         p: { xs: 2, md: 3 },
         borderRadius: 3,
-        background: 'linear-gradient(160deg, rgba(10,27,43,0.9) 0%, rgba(4,9,15,0.95) 100%)',
+        background: isDark
+          ? 'linear-gradient(160deg, rgba(10,27,43,0.9) 0%, rgba(4,9,15,0.95) 100%)'
+          : '#FFFFFF',
         border: `1px solid ${LINE}`,
-        boxShadow: '0 30px 60px rgba(0,0,0,0.5)',
+        boxShadow: isDark ? '0 30px 60px rgba(0,0,0,0.5)' : '0 20px 45px rgba(15,23,42,0.06)', 
       }}
     >
       {/* Header strip */}
@@ -543,7 +563,7 @@ const ProductionChart: React.FC = () => {
 
         {/* Grid lines */}
         {[40, 90, 140, 190].map((y) => (
-          <line key={y} x1="20" x2="520" y1={y} y2={y} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
+          <line key={y} x1="20" x2="520" y1={y} y2={y} stroke={isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.06)"} strokeWidth="1" />
         ))}
 
         {/* Uncertainty envelope */}
@@ -624,10 +644,32 @@ const ProductionChart: React.FC = () => {
 }
 
 /* ================================================================== */
+/*  Backend Render instance ping (wake up sleeping instance)           */
+/* ================================================================== */
+const BACKEND_RENDER_URL = 'https://xcape-backend-com.onrender.com'
+
+/* ================================================================== */
 /*  Home page                                                          */
 /* ================================================================== */
 const HomePage: React.FC = () => {
+  const { isDark, BG, BG_ALT, TEXT, TEXT_DIM, TEXT_DIMMER, LINE, GOLD, GOLD_LIGHT, TEAL, NAVY } = useHomeTheme()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Ping backend on render to wake up the server instance if sleeping
+    const endpoints = [
+      `${BACKEND_RENDER_URL}/`,
+      `${BACKEND_RENDER_URL}/health`,
+      `${BACKEND_RENDER_URL}/api/health`,
+    ]
+    endpoints.forEach((url) => {
+      fetch(url, {
+        method: 'GET',
+        mode: 'no-cors',
+        cache: 'no-cache',
+      }).catch(() => {})
+    })
+  }, [])
 
   const concepts = [
     {
@@ -752,7 +794,7 @@ const HomePage: React.FC = () => {
         // scrollbar
         '&::-webkit-scrollbar': { width: 10 },
         '&::-webkit-scrollbar-track': { background: BG },
-        '&::-webkit-scrollbar-thumb': { background: '#0F4C81', borderRadius: 10 },
+        '&::-webkit-scrollbar-thumb': { background: isDark ? '#0F4C81' : '#94A3B8', borderRadius: 10 },
       }}
     >
       <ScrollProgress />
@@ -797,23 +839,29 @@ const HomePage: React.FC = () => {
             objectFit: 'cover',
             zIndex: 0,
             transform: 'scale(1.03)',
-            filter: 'saturate(0.9) brightness(0.7) contrast(1.05)',
+            filter: isDark ? 'saturate(1.08) brightness(0.92) contrast(1.02)' : 'saturate(1.05) brightness(1.02) contrast(0.96)',
           }}
         >
           <source src="/Offshore_Rig_Video_Generation (1).mp4" type="video/mp4" />
         </Box>
 
-        {/* Cinematic gradients */}
+        {/* Cinematic gradients - reduced opacity so offshore rig video is vivid and clearly visible */}
         <Box
           sx={{
             position: 'absolute',
             inset: 0,
             zIndex: 1,
-            background: `linear-gradient(100deg,
-              rgba(4,9,15,0.94) 0%,
-              rgba(4,9,15,0.85) 38%,
-              rgba(15,76,129,0.55) 65%,
-              rgba(4,9,15,0.92) 100%)`,
+            background: isDark
+              ? `linear-gradient(105deg,
+                  rgba(4,9,15,0.68) 0%,
+                  rgba(4,9,15,0.42) 38%,
+                  rgba(15,76,129,0.22) 68%,
+                  rgba(4,9,15,0.60) 100%)`
+              : `linear-gradient(105deg,
+                  rgba(248,250,252,0.88) 0%,
+                  rgba(248,250,252,0.70) 38%,
+                  rgba(224,242,254,0.55) 68%,
+                  rgba(248,250,252,0.90) 100%)`,
           }}
         />
         <Box
@@ -821,8 +869,8 @@ const HomePage: React.FC = () => {
             position: 'absolute',
             inset: 0,
             zIndex: 1,
-            background: `radial-gradient(circle at 12% 20%, rgba(244,180,0,0.18) 0%, transparent 42%),
-                         radial-gradient(circle at 88% 82%, rgba(31,122,140,0.32) 0%, transparent 48%)`,
+            background: `radial-gradient(circle at 12% 20%, rgba(244,180,0,0.12) 0%, transparent 45%),
+                         radial-gradient(circle at 88% 82%, rgba(31,122,140,0.16) 0%, transparent 50%)`,
             pointerEvents: 'none',
           }}
         />
@@ -833,7 +881,7 @@ const HomePage: React.FC = () => {
             position: 'absolute',
             inset: 0,
             zIndex: 1,
-            opacity: 0.28,
+            opacity: 0.14,
             backgroundImage: `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`,
             backgroundSize: '88px 88px',
@@ -874,48 +922,7 @@ const HomePage: React.FC = () => {
           <Grid container spacing={{ xs: 6, md: 8 }} alignItems="center">
             {/* Left */}
             <Grid item xs={12} lg={7}>
-              {/* Status chip */}
-              <Box
-                sx={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                  mb: 4,
-                  px: 2,
-                  py: 0.9,
-                  borderRadius: 99,
-                  border: '1px solid rgba(244,180,0,0.35)',
-                  backgroundColor: 'rgba(244,180,0,0.08)',
-                  backdropFilter: 'blur(10px)',
-                  animation: 'heroUp .7s ease-out both',
-                }}
-              >
-                <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#4ADE80', boxShadow: '0 0 10px #4ADE80' }} />
-                <Typography
-                  sx={{
-                    fontSize: '0.66rem',
-                    fontWeight: 800,
-                    letterSpacing: 2,
-                    textTransform: 'uppercase',
-                    color: GOLD,
-                    fontFamily: 'ui-monospace, monospace',
-                  }}
-                >
-                  Production-Grade · Open Source
-                </Typography>
-                <Box sx={{ width: 1, height: 12, bgcolor: 'rgba(255,255,255,0.15)' }} />
-                <Typography
-                  sx={{
-                    fontSize: '0.66rem',
-                    fontWeight: 700,
-                    color: 'rgba(255,255,255,0.7)',
-                    fontFamily: 'ui-monospace, monospace',
-                    letterSpacing: 1,
-                  }}
-                >
-                  OPM FLOW · EnKF
-                </Typography>
-              </Box>
+
 
               {/* Headline */}
               <Typography
@@ -949,7 +956,7 @@ const HomePage: React.FC = () => {
 
               <Typography
                 sx={{
-                  color: 'rgba(255,255,255,0.78)',
+                  color: TEXT_DIM,
                   fontSize: { xs: '1rem', md: '1.18rem' },
                   lineHeight: 1.7,
                   maxWidth: 620,
@@ -958,8 +965,8 @@ const HomePage: React.FC = () => {
                 }}
               >
                 Turn field data into calibrated models, quantified uncertainty, and
-                confident production forecasts — with a transparent, classroom-ready
-                workflow built on OPM Flow and the Ensemble Kalman Filter.
+                confident production forecasts, engineered for both academic research and
+                real-world independent field development, powered by OPM Flow and the Ensemble Kalman Filter.
               </Typography>
 
               {/* CTAs */}
@@ -1003,8 +1010,8 @@ const HomePage: React.FC = () => {
                   startIcon={<PlayArrowIcon />}
                   onClick={() => navigate('/concepts')}
                   sx={{
-                    borderColor: 'rgba(255,255,255,0.3)',
-                    color: '#FFFFFF',
+                    borderColor: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(15,23,42,0.25)',
+                    color: isDark ? '#FFFFFF' : '#0F172A',
                     fontWeight: 700,
                     px: 3.5,
                     py: 1.7,
@@ -1012,11 +1019,11 @@ const HomePage: React.FC = () => {
                     textTransform: 'none',
                     fontSize: '1rem',
                     backdropFilter: 'blur(8px)',
-                    backgroundColor: 'rgba(255,255,255,0.04)',
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.6)',
                     transition: 'all .25s ease',
                     '&:hover': {
-                      borderColor: '#FFFFFF',
-                      backgroundColor: 'rgba(255,255,255,0.10)',
+                      borderColor: isDark ? '#FFFFFF' : '#0F172A',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.9)',
                       transform: 'translateY(-2px)',
                     },
                   }}
@@ -1032,7 +1039,7 @@ const HomePage: React.FC = () => {
                   gap: 4,
                   flexWrap: 'wrap',
                   pt: 4,
-                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  borderTop: `1px solid ${LINE}`,
                   animation: 'heroUp .8s ease-out .4s both',
                 }}
               >
@@ -1046,7 +1053,7 @@ const HomePage: React.FC = () => {
                     <Typography
                       sx={{
                         fontSize: '0.78rem',
-                        color: 'rgba(255,255,255,0.65)',
+                        color: TEXT_DIM,
                         fontWeight: 600,
                         letterSpacing: 0.3,
                       }}
@@ -1081,7 +1088,7 @@ const HomePage: React.FC = () => {
             left: '50%',
             transform: 'translateX(-50%)',
             zIndex: 3,
-            color: 'rgba(255,255,255,0.5)',
+            color: isDark ? 'rgba(255,255,255,0.5)' : 'rgba(15,23,42,0.5)',
             display: { xs: 'none', md: 'flex' },
             flexDirection: 'column',
             alignItems: 'center',
@@ -1114,9 +1121,11 @@ const HomePage: React.FC = () => {
               borderRadius: 3,
               overflow: 'hidden',
               border: `1px solid ${LINE}`,
-              background: 'linear-gradient(180deg, rgba(10,27,43,0.9) 0%, rgba(4,9,15,0.95) 100%)',
+              background: isDark
+                ? 'linear-gradient(180deg, rgba(10,27,43,0.9) 0%, rgba(4,9,15,0.95) 100%)'
+                : '#FFFFFF',
               backdropFilter: 'blur(16px)',
-              boxShadow: '0 30px 60px rgba(0,0,0,0.45)',
+              boxShadow: isDark ? '0 30px 60px rgba(0,0,0,0.45)' : '0 15px 35px rgba(15,23,42,0.06)', 
             }}
           >
             {stats.map((s, i) => (
@@ -1529,13 +1538,13 @@ const HomePage: React.FC = () => {
                           display: 'grid',
                           placeItems: 'center',
                           position: 'relative',
-                          color: BG,
                           background: `linear-gradient(140deg, ${GOLD_LIGHT}, ${GOLD})`,
-                          boxShadow: `0 12px 32px rgba(244,180,0,0.35), 0 0 0 8px rgba(4,9,15,1), 0 0 0 9px ${LINE}`,
+                          color: isDark ? BG : '#FFFFFF',
+                          boxShadow: `0 12px 32px rgba(244,180,0,0.35), 0 0 0 8px ${BG}, 0 0 0 9px ${LINE}`,
                           transition: 'all .4s ease',
                           '&:hover': {
                             transform: 'scale(1.06)',
-                            boxShadow: `0 16px 40px rgba(244,180,0,0.5), 0 0 0 8px rgba(4,9,15,1), 0 0 0 9px rgba(244,180,0,0.55)`,
+                            boxShadow: `0 16px 40px rgba(244,180,0,0.5), 0 0 0 8px ${BG}, 0 0 0 9px rgba(244,180,0,0.55)`,
                           },
                         }}
                       >
@@ -1748,17 +1757,18 @@ const HomePage: React.FC = () => {
                       height: '100%',
                       borderRadius: 3,
                       border: `1px solid ${LINE}`,
-                      backgroundColor: 'rgba(255,255,255,0.02)',
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
                       backdropFilter: 'blur(6px)',
+                      boxShadow: isDark ? undefined : '0 10px 25px rgba(15,23,42,0.04)',
                       transition: 'all .4s cubic-bezier(.4,0,.2,1)',
                       '&:hover': {
                         transform: 'translateY(-8px)',
                         borderColor: 'rgba(244,180,0,0.5)',
-                        backgroundColor: 'rgba(244,180,0,0.03)',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+                        backgroundColor: isDark ? 'rgba(244,180,0,0.03)' : '#FFFFFF',
+                        boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.4)' : '0 20px 40px rgba(244,180,0,0.12)',
                         '& .f-icon': {
                           backgroundColor: GOLD,
-                          color: BG,
+                          color: isDark ? BG : '#FFFFFF',
                           boxShadow: `0 0 24px rgba(244,180,0,0.45)`,
                         },
                       },

@@ -88,7 +88,7 @@ const ContactPage: React.FC = () => {
         {/* Contact Image */}
         <Box
           component="img"
-          src="/image4.png"
+          src="https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1600&q=80"
           alt="Contact Us"
           sx={{
             maxWidth: '100%',

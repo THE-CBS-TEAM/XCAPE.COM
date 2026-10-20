@@ -3,8 +3,28 @@ import { useNavigate } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from '@mui/material/styles'
-import { CssBaseline, Box, Button, IconButton, Menu, MenuItem, Avatar } from '@mui/material'
-import { Brightness4 as DarkIcon, Brightness7 as LightIcon } from '@mui/icons-material'
+import {
+  CssBaseline,
+  Box,
+  Button,
+  IconButton,
+  Menu,
+  MenuItem,
+  Avatar,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+  Typography,
+} from '@mui/material'
+import {
+  Brightness4 as DarkIcon,
+  Brightness7 as LightIcon,
+  Menu as MenuIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material'
 import { store } from '@store/store'
 import { lightTheme, darkTheme } from '@styles/theme'
 import { useAppDispatch, useAppSelector } from '@hooks/redux'
@@ -34,6 +54,7 @@ const Navigation: React.FC = () => {
   const themeMode = useAppSelector((state) => state.theme.mode)
   const { isAuthenticated, user, logout } = useAuth()
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null)
+  const [mobileOpen, setMobileOpen] = React.useState(false)
 
   const navLinks = [
     { label: 'Home', path: '/' },
@@ -266,7 +287,208 @@ const Navigation: React.FC = () => {
         >
           {themeMode === 'light' ? <DarkIcon /> : <LightIcon />}
         </IconButton>
+
+        {/* Mobile Hamburger Button */}
+        <IconButton
+          color="inherit"
+          onClick={() => setMobileOpen(true)}
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            color: isDark ? '#F8FAFC' : 'white',
+            p: 1,
+            borderRadius: '8px',
+            '&:hover': {
+              backgroundColor: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(255, 255, 255, 0.1)',
+            },
+          }}
+          aria-label="open navigation menu"
+        >
+          <MenuIcon />
+        </IconButton>
       </Box>
+
+      {/* Mobile Navigation Drawer */}
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        PaperProps={{
+          sx: {
+            width: 290,
+            bgcolor: isDark ? '#0A0F1D' : '#FFFFFF',
+            color: isDark ? '#F8FAFC' : '#0F172A',
+            borderLeft: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #E2E8F0',
+            p: 2.5,
+            display: 'flex',
+            flexDirection: 'column',
+          },
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box
+              component="img"
+              src="/xcapeblackBG.png"
+              alt="XCAPE"
+              sx={{
+                height: 28,
+                filter: isDark ? 'brightness(200%) drop-shadow(0 0 8px rgba(56, 189, 248, 0.3))' : 'brightness(180%)',
+              }}
+            />
+            <Typography sx={{ fontWeight: 800, fontSize: '1.2rem', color: isDark ? '#F8FAFC' : '#0F4C81' }}>
+              XCAPE
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setMobileOpen(false)} sx={{ color: isDark ? '#94A3B8' : '#64748B' }}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
+
+        <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', mb: 2 }} />
+
+        <List sx={{ p: 0, flex: 1 }}>
+          {navLinks.map((link) => (
+            <ListItem key={link.path} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                onClick={() => {
+                  navigate(link.path)
+                  setMobileOpen(false)
+                }}
+                sx={{
+                  borderRadius: 2,
+                  py: 1.2,
+                  px: 2,
+                  '&:hover': {
+                    bgcolor: isDark ? 'rgba(56,189,248,0.1)' : 'rgba(15,76,129,0.06)',
+                    color: isDark ? '#38BDF8' : '#0F4C81',
+                  },
+                }}
+              >
+                <ListItemText
+                  primary={link.label}
+                  primaryTypographyProps={{
+                    fontWeight: 600,
+                    fontSize: '0.98rem',
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+
+          {isAuthenticated ? (
+            <>
+              <ListItem disablePadding sx={{ mt: 1, mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/simulator')
+                    setMobileOpen(false)
+                  }}
+                  sx={{
+                    borderRadius: 2,
+                    py: 1.2,
+                    px: 2,
+                    bgcolor: isDark ? 'rgba(244,180,0,0.15)' : 'rgba(244,180,0,0.12)',
+                    color: isDark ? '#F4B400' : '#B45309',
+                    border: '1px solid rgba(244,180,0,0.3)',
+                  }}
+                >
+                  <ListItemText
+                    primary="Simulator"
+                    primaryTypographyProps={{ fontWeight: 700, fontSize: '0.98rem' }}
+                  />
+                </ListItemButton>
+              </ListItem>
+              <ListItem disablePadding sx={{ mb: 0.5 }}>
+                <ListItemButton
+                  onClick={() => {
+                    navigate('/dashboard')
+                    setMobileOpen(false)
+                  }}
+                  sx={{ borderRadius: 2, py: 1.2, px: 2 }}
+                >
+                  <ListItemText
+                    primary="Dashboard"
+                    primaryTypographyProps={{ fontWeight: 600, fontSize: '0.98rem' }}
+                  />
+                </ListItemButton>
+              </ListItem>
+            </>
+          ) : (
+            <Box sx={{ mt: 3, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                fullWidth
+                onClick={() => {
+                  navigate('/login')
+                  setMobileOpen(false)
+                }}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  borderColor: isDark ? 'rgba(255,255,255,0.2)' : '#CBD5E1',
+                  color: isDark ? '#F8FAFC' : '#0F172A',
+                }}
+              >
+                Log In
+              </Button>
+              <Button
+                variant="contained"
+                fullWidth
+                onClick={() => {
+                  navigate('/register')
+                  setMobileOpen(false)
+                }}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  fontWeight: 700,
+                  bgcolor: isDark ? '#38BDF8' : '#0F4C81',
+                  color: '#FFFFFF',
+                }}
+              >
+                Sign Up
+              </Button>
+            </Box>
+          )}
+        </List>
+
+        <Divider sx={{ borderColor: isDark ? 'rgba(255,255,255,0.08)' : '#E2E8F0', my: 2 }} />
+
+        {/* Theme and Logout at bottom of drawer */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 0.5 }}>
+          <Typography variant="body2" sx={{ color: isDark ? '#94A3B8' : '#64748B', fontWeight: 500 }}>
+            {themeMode === 'light' ? 'Light Mode' : 'Dark Mode'}
+          </Typography>
+          <IconButton
+            onClick={() => dispatch(toggleTheme())}
+            sx={{
+              color: isDark ? '#FBBF24' : '#0F4C81',
+              bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+            }}
+          >
+            {themeMode === 'light' ? <DarkIcon /> : <LightIcon />}
+          </IconButton>
+        </Box>
+        {isAuthenticated && (
+          <Button
+            fullWidth
+            onClick={() => {
+              handleLogout()
+              setMobileOpen(false)
+            }}
+            sx={{
+              mt: 2,
+              color: '#EF4444',
+              textTransform: 'none',
+              fontWeight: 600,
+              justifyContent: 'flex-start',
+            }}
+          >
+            Log Out
+          </Button>
+        )}
+      </Drawer>
     </Box>
   )
 }
