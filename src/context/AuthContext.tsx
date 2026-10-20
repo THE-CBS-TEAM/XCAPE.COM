@@ -34,6 +34,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
   setAuthSession: (user: User, token: string) => void;
+  refreshToken: () => Promise<boolean>;
+  authFetch: (url: string, options?: RequestInit) => Promise<Response>;
   error: string | null;
   clearError: () => void;
 }
@@ -186,6 +188,87 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const currentToken = token || localStorage.getItem('authToken');
+      if (!currentToken) return false;
+
+      const response = await fetch(`${API_BASE_URL}/auth/refresh_token/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${currentToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.token) {
+          setToken(data.token);
+          localStorage.setItem('authToken', data.token);
+          console.log('[AUTH] Token successfully refreshed');
+          return true;
+        }
+      }
+
+      if (response.status === 401) {
+        console.warn('[AUTH] Token expired or invalid during refresh. Signing out.');
+        handleSessionExpired();
+      }
+      return false;
+    } catch (err) {
+      console.warn('[AUTH] Error refreshing token:', err);
+      return false;
+    }
+  };
+
+  const handleSessionExpired = () => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('currentUser');
+    if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register') && !window.location.pathname.includes('/join')) {
+      window.location.href = '/login?expired=true';
+    }
+  };
+
+  const authFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+    const activeToken = token || localStorage.getItem('authToken');
+    const headers = new Headers(options.headers || {});
+    if (activeToken && !headers.has('Authorization')) {
+      headers.set('Authorization', `Token ${activeToken}`);
+    }
+
+    let response = await fetch(url, { ...options, headers });
+
+    if (response.status === 401 && activeToken) {
+      console.warn('[AUTH] 401 received. Attempting token refresh...');
+      const refreshed = await refreshToken();
+      if (refreshed) {
+        const newToken = localStorage.getItem('authToken');
+        if (newToken) {
+          headers.set('Authorization', `Token ${newToken}`);
+          response = await fetch(url, { ...options, headers });
+        }
+      } else {
+        handleSessionExpired();
+      }
+    }
+
+    return response;
+  };
+
+  useEffect(() => {
+    const handleFocus = () => {
+      const activeToken = localStorage.getItem('authToken');
+      if (activeToken) {
+        refreshToken();
+      }
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
   const clearError = () => setError(null);
 
   const value: AuthContextType = {
@@ -198,6 +281,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     logout,
     updateProfile,
     setAuthSession,
+    refreshToken,
+    authFetch,
     error,
     clearError,
   };

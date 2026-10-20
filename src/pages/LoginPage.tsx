@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -22,6 +22,8 @@ import { useAuth } from '../context/AuthContext';
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const isExpired = searchParams.get('expired') === 'true';
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -232,6 +234,12 @@ const LoginPage: React.FC = () => {
                   Enter your credentials to access the simulator
                 </Typography>
               </Box>
+
+              {isExpired && !error && !localError && (
+                <Alert severity="warning" sx={{ mb: 3 }}>
+                  Your session has expired. Please sign in again to continue your research.
+                </Alert>
+              )}
 
               {(error || localError) && (
                 <Alert severity="error" sx={{ mb: 3 }}>

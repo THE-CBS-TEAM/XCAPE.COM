@@ -47,6 +47,7 @@ import SensitivityPage from '@pages/SensitivityPage'
 
 // Auth
 import { AuthProvider, useAuth } from '@context/AuthContext'
+import { ToastProvider } from './context/ToastContext'
 import ProtectedRoute from '@components/ProtectedRoute'
 
 const Navigation: React.FC = () => {
@@ -570,7 +571,9 @@ const App: React.FC = () => {
     <Provider store={store}>
       <Router>
         <AuthProvider>
-          <AppContent />
+          <ToastProvider>
+            <AppContent />
+          </ToastProvider>
         </AuthProvider>
       </Router>
     </Provider>

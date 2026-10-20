@@ -19,6 +19,7 @@ import {
   Tab,
   Tabs,
   LinearProgress,
+  CircularProgress,
   useTheme,
   Table,
   TableBody,
@@ -39,6 +40,7 @@ import {
   Group as GroupIcon,
 } from '@mui/icons-material'
 import { useAuth } from '@context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import ForecastCharts from '@components/ForecastCharts'
 import ProductionFlowVisualization from '@components/ProductionFlowVisualization'
 import DataDrawer from '@components/DataDrawer'
@@ -215,6 +217,8 @@ const SimulatorPage: React.FC = () => {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false)
   const [isAttachModalOpen, setIsAttachModalOpen] = useState(false)
   const { token } = useAuth()
+  const { showToast } = useToast()
+  const [uploadLoading, setUploadLoading] = useState(false)
 
   // File upload state
   const [productionFile, setProductionFile] = useState<File | null>(null)
@@ -275,10 +279,16 @@ const SimulatorPage: React.FC = () => {
   }
 
   const uploadDataset = async () => {
+    if (uploadLoading) return
     if (!productionFile) {
+      showToast('Please select a production data file (CSV/XLSX) first', 'warning')
       setUploadError('Please select a production data file')
       return
     }
+
+    setUploadLoading(true)
+    setUploadError('')
+    setUploadSuccess('')
 
     try {
       // Step 1: Upload production CSV
@@ -592,7 +602,7 @@ const SimulatorPage: React.FC = () => {
         setUploadedDatasetId(created.id)
       }
       setIsManualModalOpen(false)
-      alert(`Dataset created (ID: ${created?.id}) - Quick parameters auto-populated from entered data.`)
+      showToast(`Dataset created (ID: ${created?.id}) - Quick parameters auto-populated.`, 'success')
     } catch (err) {
       console.error('Manual dataset save failed', err)
       throw err
@@ -690,7 +700,7 @@ const SimulatorPage: React.FC = () => {
           errMsg = await createRes.text()
         }
         console.error('[SIM] Simulation creation error:', errMsg)
-        alert(`Simulation creation failed: ${errMsg}`)
+        showToast(`Simulation creation failed: ${errMsg}`, 'error')
         throw new Error(errMsg)
       }
 
@@ -720,7 +730,7 @@ const SimulatorPage: React.FC = () => {
           errText = `Failed to start simulation (status ${startRes.status})`
         }
         // Surface error to user
-        alert(errText)
+        showToast(errText, 'error')
         setIsRunning(false)
         return
       }
@@ -1365,14 +1375,22 @@ const SimulatorPage: React.FC = () => {
                       <Button
                         variant="contained"
                         onClick={uploadDataset}
+                        disabled={uploadLoading || !productionFile}
+                        startIcon={uploadLoading ? <CircularProgress size={18} color="inherit" /> : <UploadIcon />}
                         sx={{
                           ml: 'auto',
+                          minWidth: 130,
+                          fontWeight: 600,
                           backgroundColor:
                             theme.palette.mode === 'dark' ? '#38BDF8' : 'primary.main',
                           color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
+                          '&.Mui-disabled': {
+                            backgroundColor: theme.palette.mode === 'dark' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(15, 76, 129, 0.2)',
+                            color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.4)' : 'rgba(0, 0, 0, 0.38)',
+                          },
                         }}
                       >
-                        Upload
+                        {uploadLoading ? 'Uploading...' : 'Upload'}
                       </Button>
                     </Box>
                     <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'textSecondary' }}>
@@ -1601,7 +1619,7 @@ const SimulatorPage: React.FC = () => {
                             if (datasetParams.water_saturation) setWaterSaturation(Number((datasetParams.water_saturation as number) * 100))
                             if (datasetParams.area) setDrainageArea(Number(datasetParams.area))
                             if (datasetParams.thickness) setNetPayThickness(Number(datasetParams.thickness))
-                            alert('All detected dataset parameters applied to quick parameters')
+                            showToast('All detected dataset parameters applied to quick parameters', 'success')
                           }}
                         >
                           Apply dataset parameters
@@ -1624,21 +1642,7 @@ const SimulatorPage: React.FC = () => {
                 </Grid>
               )}
 
-              {productionFile && (
-                <Grid item xs={12}>
-                  <Button
-                    variant="contained"
-                    onClick={uploadDataset}
-                    sx={{
-                      backgroundColor:
-                        theme.palette.mode === 'dark' ? '#38BDF8' : '#0F4C81',
-                      color: theme.palette.mode === 'dark' ? '#090D16' : '#FFFFFF',
-                    }}
-                  >
-                    Upload Dataset
-                  </Button>
-                </Grid>
-              )}
+
             </Grid>
           </TabPanel>
 
@@ -2125,7 +2129,7 @@ const SimulatorPage: React.FC = () => {
                                   errMsg = await createRes.text()
                                 }
                                 console.error('[EnKF] Create simulation failed:', errMsg)
-                                alert(`Simulation creation failed: ${errMsg}`)
+                                showToast(`Simulation creation failed: ${errMsg}`, 'error')
                                 throw new Error(errMsg)
                               }
                               const created = await createRes.json()
